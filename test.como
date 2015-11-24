@@ -1,0 +1,12 @@
+func fn() {
+	name=1;
+	return name;
+}
+
+func init() { 
+	return fn();
+}
+
+ab = init();
+
+

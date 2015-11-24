@@ -1,0 +1,10 @@
+func Object(name) {
+	return 1;
+}
+
+
+func createObject() {
+	return Object();
+}
+
+createObject();
