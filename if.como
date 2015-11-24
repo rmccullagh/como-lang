@@ -1,0 +1,10 @@
+func fn(name) {
+	if(name) {
+		return 10 * 10;
+	} else {
+		return 0;
+	}
+}
+
+
+print(fn(1) * fn(0));
