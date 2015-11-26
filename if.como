@@ -7,4 +7,9 @@ func fn(name) {
 }
 
 
-print(fn(1) * fn(0));
+func call_fn()
+{
+	print(fn() * fn(0));
+}
+
+call_fn();
