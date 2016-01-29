@@ -1,5 +1,13 @@
+#include <object.h>
+
 #include "ext.h"
-#include "module.h"
+
+COMO_FUNC(swap)
+{
+	OBJECT_DUMP(args);
+
+	*retval = NULL;
+}
 
 static const como_function standard_functions[] = {
 	{"swap", COMO_FUNC_NAME(swap) },
@@ -11,14 +19,9 @@ como_module standard_module = {
 	standard_functions
 };
 
-COMO_FUNC(swap)
+como_module* module_init(void)
 {
-	if(como_parse_args("%s", &str) == None) {
-		return;
-	}
-
-	RETURN_TRUE();
+	return &standard_module;
 }
-
 
 

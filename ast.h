@@ -12,13 +12,13 @@ typedef enum {
 	AST_NODE_TYPE_NUMBER, AST_NODE_TYPE_STRING,
 	AST_NODE_TYPE_ID, AST_NODE_TYPE_UNDEFINED,
 	AST_NODE_TYPE_STATEMENT_LIST, AST_NODE_TYPE_BIN_OP,
-	AST_NODE_TYPE_IF, AST_NODE_TYPE_FUNC_DECL, AST_NODE_TYPE_CALL,
-        AST_NODE_TYPE_RET, AST_NODE_TYPE_PRINT
+	AST_NODE_TYPE_IF, AST_NODE_TYPE_WHILE, AST_NODE_TYPE_FUNC_DECL, 
+	AST_NODE_TYPE_CALL, AST_NODE_TYPE_RET, AST_NODE_TYPE_PRINT
 } ast_node_type;
 
 typedef enum {
 	AST_BINARY_OP_ADD, AST_BINARY_OP_MINUS, AST_BINARY_OP_ASSIGN,
-	AST_BINARY_OP_TIMES, AST_BINARY_OP_DIV
+	AST_BINARY_OP_TIMES, AST_BINARY_OP_DIV, AST_BINARY_OP_CMP
 } ast_binary_op_type;
 
 typedef struct ast_node ast_node;
@@ -88,6 +88,11 @@ typedef struct {
 	ast_node* b2;
 } ast_node_if;
 
+typedef struct {
+	ast_node* condition;
+	ast_node* body;
+} ast_node_while;
+
 /* function a() {} */
 typedef struct {
 	char* name;
@@ -125,6 +130,7 @@ struct ast_node {
 		ast_node_statements	statements_node;
 		ast_node_binary		binary_node;
 		ast_node_if		if_node;
+		ast_node_while		while_node;
 		ast_node_function       function_node;
 		ast_node_call           call_node;
 		ast_node_return		return_node;
@@ -141,6 +147,8 @@ extern void ast_node_free(ast_node* node);
 extern ast_node* ast_node_create_id(const char* name);
 
 extern ast_node* ast_node_create_if(ast_node* condition, ast_node* b1, ast_node* b2);
+
+extern ast_node* ast_node_create_while(ast_node* condition, ast_node* body);
 
 extern ast_node* ast_node_create_function(const char* name, ast_node* parameters, ast_node* body);
 

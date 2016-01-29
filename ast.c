@@ -151,6 +151,15 @@ ast_node* ast_node_create_if(ast_node* condition, ast_node* b1, ast_node* b2)
 	return retval;
 }
 
+ast_node* ast_node_create_while(ast_node* condition, ast_node* body)
+{
+	ast_node* retval = malloc(sizeof(ast_node));
+	retval->type = AST_NODE_TYPE_WHILE;
+	retval->u1.while_node.condition = condition;
+	retval->u1.while_node.body = body;
+	return retval;
+}
+
 ast_node* ast_node_create_function(const char* name, ast_node* parameters, ast_node* body)
 {
 	ast_node* retval = malloc(sizeof(ast_node));

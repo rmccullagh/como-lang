@@ -35,7 +35,7 @@
 /* "%code requires" blocks.  */
 
 /* Line 1676 of yacc.c  */
-#line 22 "parser.y"
+#line 23 "parser.y"
 
 
 #ifndef YY_TYPEDEF_YY_SCANNER_T
@@ -56,14 +56,16 @@ typedef void* yyscan_t;
       know about them.  */
    enum yytokentype {
      END = 0,
-     T_IF = 258,
-     T_ELSE = 259,
-     T_FUNC = 260,
-     T_RETURN = 261,
-     T_PRINT = 262,
-     T_NOELSE = 263,
-     T_NUM = 264,
-     T_ID = 265
+     T_CMP = 258,
+     T_IF = 259,
+     T_ELSE = 260,
+     T_WHILE = 261,
+     T_FUNC = 262,
+     T_RETURN = 263,
+     T_PRINT = 264,
+     T_NOELSE = 265,
+     T_NUM = 266,
+     T_ID = 267
    };
 #endif
 
@@ -74,7 +76,7 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 42 "parser.y"
+#line 43 "parser.y"
 
 	double number;
 	char* id;
@@ -83,7 +85,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 87 "parser.h"
+#line 89 "parser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

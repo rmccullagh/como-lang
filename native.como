@@ -1,0 +1,5 @@
+func call(name) {
+	var_dump(name);
+}
+
+call(15);

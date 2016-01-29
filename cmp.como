@@ -1,0 +1,9 @@
+func main(name) {
+	if(name == 5) {
+		print(5);
+	} else {
+		print(0);
+	}
+}
+
+main(3);

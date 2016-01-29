@@ -4,9 +4,12 @@
 #include <object.h>
 #include "ast.h"
 #include "stack.h"
+#include "globals.h"
 
 #define C_USER_FUNC (1 << 0)
 #define C_EXT_FUNC  (1 << 1)
+
+typedef void(*como_ext_func)(Object*, Object**);
 
 static void debug(const char* format, ...)
 {
@@ -30,6 +33,14 @@ typedef struct compiler_context {
 
 static compiler_context* cg;
 
+static void como_var_dump(Object* args, Object** retval)
+{
+	printf("%s()\n", __func__);
+	OBJECT_DUMP(args);
+	*retval = NULL;
+	cg->return_value = NULL;
+}
+
 static void compiler_init(void)
 {
 	cg = malloc(sizeof(compiler_context));
@@ -38,7 +49,12 @@ static void compiler_init(void)
 	cg->function_call_stack = NULL;
 	cg->return_value = NULL;
 	cg->active_function_name = "__main__";
-	cg->filename = NULL;	
+	cg->filename = NULL;
+
+	Object* var_dump = newFunction(como_var_dump);	
+	O_MRKD(var_dump) = C_EXT_FUNC;
+	mapInsert(cg->symbol_table, "var_dump", var_dump);
+	objectDestroy(var_dump);
 }
 
 static compiler_context* cg_context_create()
@@ -52,7 +68,7 @@ static compiler_context* cg_context_create()
 	return ctx;	
 }
 
-static void dump_fn_call_stack(void)
+void dump_fn_call_stack(void)
 {
 	como_stack* top = cg->function_call_stack;
 	while(top != NULL) {
@@ -149,6 +165,16 @@ static Object* ex(ast_node* p)
 			}
 			return newNull();
 		} break;
+		case AST_NODE_TYPE_WHILE: {
+			Object* cond = ex(p->u1.while_node.condition);
+
+			while(is_truthy(cond)) {
+				ex(p->u1.while_node.body);	
+				cond = ex(p->u1.while_node.condition);
+			}
+			return newNull();	
+		}
+		break;
 		case AST_NODE_TYPE_IF: {
 			Object* cond = ex(p->u1.if_node.condition);
 
@@ -221,64 +247,103 @@ static Object* ex(ast_node* p)
 				}
 
 				if((O_MRKD(fn)) & C_USER_FUNC) {
-					debug("user function\n");
+					// actual arguments passed to function
+					ast_node_statements* arg_list = &(p->u1.call_node.arguments->u1.statements_node);
+					// function defintion
+					ast_node_function* fn_info = &(((ast_node*)(O_FVAL(fn)))->u1.function_node);
+					// declaration parameters
+					ast_node_statements* arg_info = &(fn_info->parameter_list->u1.statements_node);
+
+					if(arg_info->count != arg_list->count) {
+						printf("error: function \"%s\" expects exactly %zu argument(s), but only %zu were passed\n", 
+							id, arg_info->count, arg_list->count);
+						dump_fn_call_stack();
+						exit(1);
+					}
+						
+					Object* old_current_symbol_table = cg->current_symbol_table;
+					const char* prev_active_func_name = cg->active_function_name;
+					Object* scope = newMap(2);
+					cg->active_function_name = id;
+					
+					size_t i;
+					for(i = 0; i < arg_info->count; i++) {
+						ast_node* param = arg_info->statement_list[i];
+						const char* param_name = param->u1.id_node.name;
+						Object* val = ex(arg_list->statement_list[i]); 
+						mapInsert(scope, param_name, val);
+						objectDestroy(val);
+					}
+
+					cg->current_symbol_table = scope;
+
+					Object* fn_ret_val;
+					ast_node* body = fn_info->body;
+					
+					fn_ret_val = ex(body);
+
+					if(cg->return_value == NULL) {
+						cg->return_value = newNull();
+					}
+
+					debug("symbol table of \"%s\":\n", id);
+					OBJECT_DUMP(scope);
+
+					cg->active_function_name = prev_active_func_name;
+					objectDestroy(scope);
+					cg->current_symbol_table = old_current_symbol_table;
+					objectDestroy(fn);
+					objectDestroy(fn_ret_val);
+
+					Object* retval = copyObject(cg->return_value);	
+					objectDestroy(cg->return_value);
+					cg->return_value = NULL;
+					return retval;	
 				} else if(O_MRKD(fn) & C_EXT_FUNC) {
 					debug("extension function being called\n");
+					// actual arguments passed to function
+					ast_node_statements* arg_list = &(p->u1.call_node.arguments->u1.statements_node);
+					// function defintion
+					como_ext_func native_func = (como_ext_func)(O_FVAL(fn));
+
+					Object* old_current_symbol_table = cg->current_symbol_table;
+					const char* prev_active_func_name = cg->active_function_name;
+					Object* scope = newMap(2);
+					cg->active_function_name = id;
+					Object* native_args = newArray(2);	
+					size_t i;
+					for(i = 0; i < arg_list->count; i++) {
+						ast_node* param = arg_list->statement_list[i];
+						const char* param_name = param->u1.id_node.name;
+						Object* val = ex(arg_list->statement_list[i]); 
+						mapInsert(scope, param_name, val);
+						arrayPush(native_args, val);
+						objectDestroy(val);
+					}
+
+					cg->current_symbol_table = scope;
+
+					Object* fn_ret_val;
+
+					native_func(native_args, &fn_ret_val);
+
+					if(cg->return_value == NULL) {
+						cg->return_value = newNull();
+					}
+
+					cg->active_function_name = prev_active_func_name;
+					objectDestroy(scope);
+					cg->current_symbol_table = old_current_symbol_table;
+					objectDestroy(fn);
+					objectDestroy(fn_ret_val);
+					objectDestroy(native_args);
+					Object* retval = copyObject(cg->return_value);	
+					objectDestroy(cg->return_value);
+					cg->return_value = NULL;
+					return retval;	
+				} else {
+					return NULL;
 				}
-	
-				// actual arguments passed to function
-				ast_node_statements* arg_list = &(p->u1.call_node.arguments->u1.statements_node);
-				// function defintion
-				ast_node_function* fn_info = &(((ast_node*)(O_FVAL(fn)))->u1.function_node);
-				// declaration parameters
-				ast_node_statements* arg_info = &(fn_info->parameter_list->u1.statements_node);
-
-
-				if(arg_info->count != arg_list->count) {
-					printf("error: function \"%s\" expects exactly %zu argument(s), but only %zu were passed\n", 
-						id, arg_info->count, arg_list->count);
-					dump_fn_call_stack();
-					exit(1);
-				}				
-	
-				Object* old_current_symbol_table = cg->current_symbol_table;
-				const char* prev_active_func_name = cg->active_function_name;
-				Object* scope = newMap(2);
-				cg->active_function_name = id;
-				
-				size_t i;
-				for(i = 0; i < arg_info->count; i++) {
-					ast_node* param = arg_info->statement_list[i];
-					const char* param_name = param->u1.id_node.name;
-					Object* val = ex(arg_list->statement_list[i]); 
-					mapInsert(scope, param_name, val);
-					objectDestroy(val);
-				}
-
-				cg->current_symbol_table = scope;
-
-				Object* fn_ret_val;
-				ast_node* body = fn_info->body;
-				
-				fn_ret_val = ex(body);
-
-				if(cg->return_value == NULL) {
-					cg->return_value = newNull();
-				}
-
-				debug("symbol table of \"%s\":\n", id);
-				OBJECT_DUMP(scope);
-
-				cg->active_function_name = prev_active_func_name;
-				objectDestroy(scope);
-				cg->current_symbol_table = old_current_symbol_table;
-				objectDestroy(fn);
-				objectDestroy(fn_ret_val);
-
-				Object* retval = copyObject(cg->return_value);	
-				objectDestroy(cg->return_value);
-				cg->return_value = NULL;
-				return retval;	
 			}
 		} break;
 		case AST_NODE_TYPE_BIN_OP: {
@@ -286,6 +351,63 @@ static Object* ex(ast_node* p)
 				default:
 					printf("%s(): invalid binary op(%d)\n", __func__, p->u1.binary_node.type);
 					exit(1);
+				break;
+				case AST_BINARY_OP_CMP: {
+					Object* left = ex(p->u1.binary_node.left);
+					Object* right = ex(p->u1.binary_node.right);
+
+					if(!left || !right) {
+						return NULL;
+					} else {
+						return newDouble(objectValueCompare(left, right));
+					}
+				}
+				break;
+				case AST_BINARY_OP_MINUS: {
+					Object* left = ex(p->u1.binary_node.left);
+					Object* right = ex(p->u1.binary_node.right);
+
+					if(!left || !right) {
+						return NULL;
+					} else {
+						if(O_TYPE(left) == IS_DOUBLE && O_TYPE(right) == IS_DOUBLE) {
+							double diff = O_DVAL(left) - O_DVAL(right);
+						
+							O_DVAL(left) = diff;
+
+							return left;
+		
+						} else {
+							return newNull();
+						}
+
+					}
+
+				}
+				break;
+				case AST_BINARY_OP_DIV: {
+					Object* left = ex(p->u1.binary_node.left);
+					Object* right = ex(p->u1.binary_node.right);
+
+					if(!left || !right) {
+						return NULL;
+					} else {
+						if(O_TYPE(left) == IS_DOUBLE && O_TYPE(right) == IS_DOUBLE) {
+							if(!O_DVAL(right)) {
+								printf("error: division by zero is undefined\n");
+								dump_fn_call_stack();
+								exit(1);
+							}
+							double result = O_DVAL(left) / O_DVAL(right);
+							objectDestroy(left);
+							objectDestroy(right);
+							return newDouble(result);	
+						} else {
+							return newNull();
+						}
+
+					}
+				}
 				break;
 				case AST_BINARY_OP_ADD: {
 					Object* left = ex(p->u1.binary_node.left);
@@ -324,14 +446,16 @@ static Object* ex(ast_node* p)
 				case AST_BINARY_OP_ASSIGN: {
 					const char* id = p->u1.binary_node.left->u1.id_node.name;
 					Object* right = ex(p->u1.binary_node.right);	
-					debug("assigning '%s' in symbol table for %s\n", id, cg->active_function_name);
+					
 					if(cg->current_symbol_table == NULL) {
 						mapInsert(cg->symbol_table, id, right);
 					} else {
 						mapInsert(cg->current_symbol_table, id, right);
 					}
+					
 					Object* ret = copyObject(right);
 					objectDestroy(right);
+
 					return ret;
 				} break;
 			}	

@@ -45,11 +45,14 @@ A		[a-zA-Z_0-9]
 %%
 
 
-"if"		{ return T_IF;    }
-"else"          { return T_ELSE;  }
-"func"          { return T_FUNC;  }
+"if"		{ return T_IF;     }
+"else"          { return T_ELSE;   }
+"while"         { return T_WHILE;  }
+"func"          { return T_FUNC;   }
 "print"         { return T_PRINT;  }
 "return"        { return T_RETURN; }
+"=="            { return T_CMP;    }
+
 {WHITE_SPACE}	{ /* Skipping Blanks Today */ }
 {L}{A}*         {
 	size_t len = strlen(yytext);

@@ -1,15 +1,14 @@
 func fn(name) {
-	if(name) {
+	if(name)
 		return 10 * 10;
-	} else {
+	else
 		return 0;
-	}
 }
 
 
 func call_fn()
 {
-	print(fn() * fn(0));
+	print(fn(1) * fn(0));
 }
 
 call_fn();

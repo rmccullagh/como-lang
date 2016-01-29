@@ -3,11 +3,32 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <easyio.h>
 #include "ast.h"
 #include "globals.h"
 #include "parser.h"
 #include "lexer.h"
+
+static como_global globals;
+
+static void init_globals(void) {
+	globals.filename = NULL;
+	globals.filename_length = 0;
+};
+
+static void set_file_name(const char* name) {
+	size_t len = strlen(name);
+	globals.filename = malloc(len + 1);
+	memcpy(globals.filename, name, len);
+	globals.filename[len] = '\0';
+	globals.filename_length = len;	
+}
+
+const char* get_file_name(void) {
+	return globals.filename;
+}
 
 int yyparse(ast_node** ast, yyscan_t scanner);
 
@@ -47,6 +68,10 @@ int main(int argc, char** argv)
 		printf("file '%s' not found\n", argv[1]);
 		return 1;
 	}
+
+	init_globals();
+
+	set_file_name(argv[1]);
 
 	ast_node* program = como_ast_create(text);
 

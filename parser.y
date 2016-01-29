@@ -13,7 +13,8 @@
 
 int yyerror(YYLTYPE * lvalp, ast_node** ast, yyscan_t scanner, const char* msg)
 {
-	printf("Parser error: %s in <file> on line %d:%d\n", msg, lvalp->first_line, lvalp->first_column);
+	printf("parse error: %s in file \"%s\" on line %d:%d\n", msg, get_file_name(), lvalp->first_line, lvalp->first_column);
+	
 	exit(1);
 }
 
@@ -45,18 +46,25 @@ typedef void* yyscan_t;
 	ast_node* ast;
 } 
 
+%left T_CMP
 %left ','
 %left '='
+%left '-'
 %left '+'
 %left '*'
+%left '/'
 
 %token END 0 "EOF"
+%token '-'
 %token '+'
 %token '*'
+%token '/'
 %token T_IF
 %token T_ELSE
+%token T_WHILE
 %token T_FUNC
 %token T_RETURN
+%token T_CMP
 %token T_PRINT
 %left T_NOELSE
 %left T_ELSE
@@ -130,13 +138,17 @@ expression_statement:
 ;
 
 if_statement_without_else:
- T_IF '(' expr ')' statement { $$ = ast_node_create_if($3, $5, NULL); }
+ T_IF '(' expr ')' compound_statement { $$ = ast_node_create_if($3, $5, NULL); }
 ;
 
 selection_statement:
  if_statement_without_else %prec T_NOELSE { $$ = $1; }
  |
- if_statement_without_else T_ELSE statement { $1->u1.if_node.b2 = $3; $$ = $1; }
+ if_statement_without_else T_ELSE compound_statement { $1->u1.if_node.b2 = $3; $$ = $1; }
+ |
+ T_WHILE '(' expr ')' compound_statement {
+ 	$$ = ast_node_create_while($3, $5);
+ }
 ;
 
 function_decl_statement:
@@ -179,17 +191,23 @@ argument:
 ;
  
 expr:
- expr '+' expr { $$ = ast_node_create_binary_op(AST_BINARY_OP_ADD, $1, $3); }
+ expr '+' expr   { $$ = ast_node_create_binary_op(AST_BINARY_OP_ADD, $1, $3);   }
  |
- expr '*' expr { $$ = ast_node_create_binary_op(AST_BINARY_OP_TIMES, $1, $3); }
+ expr '-' expr   { $$ = ast_node_create_binary_op(AST_BINARY_OP_MINUS, $1, $3); }
  |
- '(' expr ')'  { $$ = $2; }
+ expr '*' expr   { $$ = ast_node_create_binary_op(AST_BINARY_OP_TIMES, $1, $3); }
  |
- T_NUM         { $$ = ast_node_create_number($1); }
+ expr '/' expr   { $$ = ast_node_create_binary_op(AST_BINARY_OP_DIV, $1, $3);   }
  |
- T_ID          { $$ = ast_node_create_id($1);  free($1); }
+ '(' expr ')'    { $$ = $2; }
  |
- T_ID '=' expr { $$ = ast_node_create_binary_op(AST_BINARY_OP_ASSIGN, ast_node_create_id($1), $3); free($1); }
+ T_NUM           { $$ = ast_node_create_number($1); }
+ |
+ T_ID            { $$ = ast_node_create_id($1);  free($1); }
+ |
+ T_ID '=' expr   { $$ = ast_node_create_binary_op(AST_BINARY_OP_ASSIGN, ast_node_create_id($1), $3); free($1); }
+ |
+ expr T_CMP expr { $$ = ast_node_create_binary_op(AST_BINARY_OP_CMP, $1, $3);   }
  |
  T_ID '(' optional_argument_list ')' {
 	$$ = ast_node_create_call(ast_node_create_id($1), $3, @1.first_line, @1.first_column);
@@ -197,7 +215,6 @@ expr:
  }
  |
  T_PRINT '(' expr ')' { $$ = ast_node_create_print($3); }
-
 ;
 
 %%

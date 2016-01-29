@@ -1,0 +1,10 @@
+func init() {
+	name = 5;
+
+	while(name) {
+		print(name);
+		name = name - 1;
+	}
+}
+
+init();
