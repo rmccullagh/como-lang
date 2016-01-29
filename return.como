@@ -1,0 +1,11 @@
+func ex()
+{
+	return 1;
+	
+	not_reached = 10 * 10;
+	
+	print(not_reached);
+}
+
+
+print(ex());

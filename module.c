@@ -48,7 +48,7 @@ int main(void)
 
 		printf("%s\n", mod_info->functions[i].name);
 	}
-	
+
 	return 0;
 }
 
