@@ -1,5 +1,16 @@
-func main() {
-	return 10 / 2 -3 / 0;
+func main(num) {
+	result = num;
+
+	while(result) {
+		a = result / 2;
+
+		if(num - a == 0) {
+			print(1);
+		} else {
+			print(0);
+		}
+		result = result - 1;
+	}
 }
 
-print(main());
+main(10);

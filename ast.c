@@ -78,6 +78,10 @@ void ast_node_free(ast_node* p)
 	if(!p)
 		return;
 	switch(p->type) {
+		case AST_NODE_TYPE_STRING:
+			free(p->u1.string_value.value);
+			free(p);
+		break;
 		case AST_NODE_TYPE_RET:
 			ast_node_free(p->u1.return_node.expr);
 			free(p);
@@ -199,5 +203,41 @@ ast_node* ast_node_create_print(ast_node* expr)
 	ast_node* retval = malloc(sizeof(ast_node));
 	retval->type = AST_NODE_TYPE_PRINT;
 	retval->u1.print_node.expr = expr;
+	return retval;
+}
+
+ast_node* ast_node_create_string_literal(const char* str)
+{
+	ast_node* retval = malloc(sizeof(ast_node));
+	retval->type = AST_NODE_TYPE_STRING;
+	retval->u1.string_value.length = strlen(str);
+	retval->u1.string_value.value = malloc(retval->u1.string_value.length + 1);
+	memcpy(retval->u1.string_value.value, str, retval->u1.string_value.length);
+	retval->u1.string_value.value[retval->u1.string_value.length] = '\0';
+	return retval;
+}
+
+ast_node* ast_node_create_try(ast_node* try_body, ast_node* catch_name, ast_node* catch_body)
+{
+
+
+	return NULL;
+}
+
+
+ast_node* ast_node_create_key_value_pair(ast_node* id, ast_node* value)
+{
+	ast_node* retval = malloc(sizeof(ast_node));
+	retval->type = AST_NODE_TYPE_KEY_VALUE;
+	retval->u1.key_value_node.id = id;
+	retval->u1.key_value_node.value = value;
+	return retval;
+}
+
+ast_node* ast_node_create_map(ast_node* values)
+{
+	ast_node* retval = malloc(sizeof(ast_node));
+	retval->type = AST_NODE_TYPE_MAP;
+	retval->u1.map_node.values = values;
 	return retval;
 }

@@ -13,12 +13,15 @@ typedef enum {
 	AST_NODE_TYPE_ID, AST_NODE_TYPE_UNDEFINED,
 	AST_NODE_TYPE_STATEMENT_LIST, AST_NODE_TYPE_BIN_OP,
 	AST_NODE_TYPE_IF, AST_NODE_TYPE_WHILE, AST_NODE_TYPE_FUNC_DECL, 
-	AST_NODE_TYPE_CALL, AST_NODE_TYPE_RET, AST_NODE_TYPE_PRINT
+	AST_NODE_TYPE_CALL, AST_NODE_TYPE_RET, AST_NODE_TYPE_PRINT,
+	AST_NODE_TYPE_TRY, AST_NODE_TYPE_CATCH, AST_NODE_TYPE_KEY_VALUE,
+	AST_NODE_TYPE_MAP
 } ast_node_type;
 
 typedef enum {
 	AST_BINARY_OP_ADD, AST_BINARY_OP_MINUS, AST_BINARY_OP_ASSIGN,
-	AST_BINARY_OP_TIMES, AST_BINARY_OP_DIV, AST_BINARY_OP_CMP
+	AST_BINARY_OP_TIMES, AST_BINARY_OP_DIV, AST_BINARY_OP_CMP,
+	AST_BINARY_OP_REM
 } ast_binary_op_type;
 
 typedef struct ast_node ast_node;
@@ -116,6 +119,25 @@ typedef struct {
 	ast_node* expr;	
 } ast_node_print;
 
+typedef struct {
+	Object *value;
+} ast_node_string_literal;
+
+typedef struct {
+	ast_node *try_body;
+	ast_node *catch_name;
+	ast_node *catch_body;
+} ast_node_try;
+
+typedef struct {
+	ast_node* id;
+	ast_node* value;
+} ast_node_key_value;
+
+typedef struct {
+	ast_node* values;
+} ast_node_type_map;
+
 struct ast_node {
 	ast_node_type	type;
 	union {
@@ -135,6 +157,9 @@ struct ast_node {
 		ast_node_call           call_node;
 		ast_node_return		return_node;
 		ast_node_print		print_node;
+		ast_node_try		try_node;
+		ast_node_key_value      key_value_node;
+		ast_node_type_map       map_node;
 	} u1;
 };
 
@@ -157,6 +182,15 @@ extern ast_node* ast_node_create_call(ast_node* id, ast_node* arguments, int lin
 extern ast_node* ast_node_create_return(ast_node* expr);
 
 extern ast_node* ast_node_create_print(ast_node* expr);
+
+extern ast_node* ast_node_create_string_literal(const char* str);
+
+
+extern ast_node* ast_node_create_try(ast_node* try_body, ast_node* catch_name, ast_node* catch_body);
+
+extern ast_node* ast_node_create_key_value_pair(ast_node* id, ast_node* value);
+
+extern ast_node* ast_node_create_map(ast_node* values);
 
 extern void ast_node_dump_tree(ast_node* node);
 

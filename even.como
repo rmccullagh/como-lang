@@ -1,0 +1,14 @@
+func print_even(num)
+{
+	while(num) {
+		if(num / 2 == 2) {
+			print(1);
+		} else {
+			print(0);
+		}
+
+		num = num - 1;
+	}
+}
+
+print_even(4);

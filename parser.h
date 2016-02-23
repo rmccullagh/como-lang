@@ -65,7 +65,8 @@ typedef void* yyscan_t;
      T_PRINT = 264,
      T_NOELSE = 265,
      T_NUM = 266,
-     T_ID = 267
+     T_ID = 267,
+     T_STR_LIT = 268
    };
 #endif
 
@@ -80,12 +81,13 @@ typedef union YYSTYPE
 
 	double number;
 	char* id;
+	char* stringliteral;
 	ast_node* ast;
 
 
 
 /* Line 1676 of yacc.c  */
-#line 89 "parser.h"
+#line 91 "parser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

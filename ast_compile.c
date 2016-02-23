@@ -117,9 +117,13 @@ static Object* ex(ast_node* p)
 			printf("%s(): invalid node type(%d)\n", __func__, p->type);
 			exit(1);
 		break;
+		case AST_NODE_TYPE_STRING: {
+			return newString(p->u1.string_value.value);
+		}
+		break;
 		case AST_NODE_TYPE_PRINT: {
 			Object* expr = ex(p->u1.print_node.expr);
-			OBJECT_DUMP(expr);
+			objectEcho(expr);
 			objectDestroy(expr);
 			return newNull();
 		}
@@ -233,17 +237,12 @@ static Object* ex(ast_node* p)
 				objectDestroy(lineno); 
 				objectDestroy(colno);
 
-				//Object* func_call_info = call_info_create(cg->active_function_name, 
-				//					  p->u1.call_node.lineno, 
-				//					  p->u1.call_node.colno);
-
-
 				como_stack_push(&cg->function_call_stack, call_info);
 			
 				if(O_TYPE(fn) != IS_FUNCTION) {
 					printf("error: \"%s\" is not callable\n", id);
 					dump_fn_call_stack();
-					exit(1);	
+					return newNull();
 				}
 
 				if((O_MRKD(fn)) & C_USER_FUNC) {
@@ -286,9 +285,6 @@ static Object* ex(ast_node* p)
 						cg->return_value = newNull();
 					}
 
-					debug("symbol table of \"%s\":\n", id);
-					OBJECT_DUMP(scope);
-
 					cg->active_function_name = prev_active_func_name;
 					objectDestroy(scope);
 					cg->current_symbol_table = old_current_symbol_table;
@@ -300,7 +296,6 @@ static Object* ex(ast_node* p)
 					cg->return_value = NULL;
 					return retval;	
 				} else if(O_MRKD(fn) & C_EXT_FUNC) {
-					debug("extension function being called\n");
 					// actual arguments passed to function
 					ast_node_statements* arg_list = &(p->u1.call_node.arguments->u1.statements_node);
 					// function defintion
@@ -475,8 +470,6 @@ void ast_compile(const char* filename, ast_node* program)
 	cg->filename = newString(filename);	
 	
 	Object* ret = ex(program);
-	debug("global symbol table:\n");
-	OBJECT_DUMP(cg->symbol_table);
 	objectDestroy(cg->symbol_table);
 	objectDestroy(ret);
 	objectDestroy(cg->filename);

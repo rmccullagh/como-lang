@@ -43,6 +43,7 @@ typedef void* yyscan_t;
 %union {
 	double number;
 	char* id;
+	char* stringliteral;
 	ast_node* ast;
 } 
 
@@ -59,6 +60,7 @@ typedef void* yyscan_t;
 %token '+'
 %token '*'
 %token '/'
+
 %token T_IF
 %token T_ELSE
 %token T_WHILE
@@ -72,6 +74,7 @@ typedef void* yyscan_t;
 
 %token <number> T_NUM
 %token <id> T_ID
+%token <stringliteral> T_STR_LIT
 
 %type <ast> top_statement statement expression_statement compound_statement selection_statement
 %type <ast> inner_statement if_statement_without_else
@@ -189,6 +192,7 @@ argument_list:
 argument:
  expr { $$ = $1; }
 ;
+
  
 expr:
  expr '+' expr   { $$ = ast_node_create_binary_op(AST_BINARY_OP_ADD, $1, $3);   }
@@ -204,6 +208,8 @@ expr:
  T_NUM           { $$ = ast_node_create_number($1); }
  |
  T_ID            { $$ = ast_node_create_id($1);  free($1); }
+ |
+ T_STR_LIT       { $$ = ast_node_create_string_literal($1); free($1); }
  |
  T_ID '=' expr   { $$ = ast_node_create_binary_op(AST_BINARY_OP_ASSIGN, ast_node_create_id($1), $3); free($1); }
  |

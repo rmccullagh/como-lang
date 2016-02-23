@@ -44,7 +44,6 @@ A		[a-zA-Z_0-9]
 
 %%
 
-
 "if"		{ return T_IF;     }
 "else"          { return T_ELSE;   }
 "while"         { return T_WHILE;  }
@@ -60,7 +59,15 @@ A		[a-zA-Z_0-9]
 	memcpy(yylval->id, yytext, len + 1);
 	return T_ID;
 }
-{NUM}		{ yylval->number = atoi(yytext); return T_NUM;       }
+{NUM}		        { yylval->number = atoi(yytext); return T_NUM;       }
+
+L?\"(\\.|[^\\"])*\"	{ 
+	size_t len = strlen(yytext);
+	yylval->stringliteral = malloc((len -2) + 1);
+	memcpy(yylval->id, yytext + 1, len - 2);
+	yylval->id[len - 2] = '\0';
+	return T_STR_LIT;
+}
 .		{ return yytext[0];				     }
 
 %%
