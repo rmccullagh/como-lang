@@ -78,7 +78,7 @@ union YYSTYPE
 {
 #line 55 "parser.y" /* yacc.c:1909  */
 
-	double number;
+	long number;
 	char* id;
 	char* stringliteral;
 	ast_node* ast;

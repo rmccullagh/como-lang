@@ -56,7 +56,7 @@ A		[a-zA-Z_0-9]
 
 %%
 
-"if"		{ return T_IF;     }
+"if"		        { return T_IF;     }
 "else"          { return T_ELSE;   }
 "while"         { return T_WHILE;  }
 "func"          { return T_FUNC;   }
@@ -71,7 +71,7 @@ A		[a-zA-Z_0-9]
 	memcpy(yylval->id, yytext, len + 1);
 	return T_ID;
 }
-{NUM}		        { yylval->number = atoi(yytext); return T_NUM;       }
+{NUM}		        { yylval->number = strtol(yytext, NULL, 10); return T_NUM;       }
 
 L?\"(\\.|[^\\"])*\"	{ 
 	size_t len = strlen(yytext);

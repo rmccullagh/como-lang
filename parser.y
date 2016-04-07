@@ -53,7 +53,7 @@ typedef void* yyscan_t;
 %parse-param { yyscan_t scanner }
 
 %union {
-	double number;
+	long number;
 	char* id;
 	char* stringliteral;
 	ast_node* ast;

@@ -30,7 +30,7 @@ static void ast_node_dump_tree_ex(ast_node* p, int indent);
 
 static void ast_node_dump_number(ast_node* p)
 {
-	fprintf(stdout, "Num(n=%.*G)", DBL_DIG, p->u1.number_value);
+	fprintf(stdout, "Num(n=%ld)", p->u1.number_value);
 }
 
 static void ast_node_dump_statement_list(ast_node* p, int indent)

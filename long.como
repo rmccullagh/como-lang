@@ -1,0 +1,12 @@
+func run()
+{
+	result = 5;
+
+	while(result) {
+		print(result);
+		result = result - 1;
+	}
+}
+
+
+run();

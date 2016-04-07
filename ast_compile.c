@@ -104,7 +104,7 @@ static int is_truthy(Object* o)
 {
 	if(!o)
 		return 0;
-	if(O_TYPE(o) == IS_DOUBLE) {
+	if(O_TYPE(o) == IS_LONG) {
 		return O_DVAL(o) ? 1 : 0;
 	}
 	if(O_TYPE(o) == IS_NULL) {
@@ -115,7 +115,7 @@ static int is_truthy(Object* o)
 		return O_BVAL(o) ? 1 : 0;
 	}
 
-	return 1;
+	return 0;
 }
 
 Object* call_info_create(const char* fname, int line, int col)
@@ -146,7 +146,7 @@ static Object* ex(ast_node* p)
 		}
 		break;
 		case AST_NODE_TYPE_NUMBER:
-			return newDouble(p->u1.number_value);
+			return newLong(p->u1.number_value);
 		break;
 		case AST_NODE_TYPE_ID: {
 			Object* value;
@@ -160,7 +160,7 @@ static Object* ex(ast_node* p)
 			}
 			if(!value) {
 				printf("warning: undefined variable %s\n", p->u1.id_node.name);
-				return newDouble(0);
+				return newLong(0);
 			} else {
 				return value;
 			}
@@ -371,7 +371,7 @@ static Object* ex(ast_node* p)
 					if(!left || !right) {
 						return NULL;
 					} else {
-						return newDouble(objectValueCompare(left, right));
+						return newLong(objectValueCompare(left, right));
 					}
 				}
 				break;
@@ -382,19 +382,14 @@ static Object* ex(ast_node* p)
 					if(!left || !right) {
 						return NULL;
 					} else {
-						if(O_TYPE(left) == IS_DOUBLE && O_TYPE(right) == IS_DOUBLE) {
-							double diff = O_DVAL(left) - O_DVAL(right);
-						
-							O_DVAL(left) = diff;
-
+						if(O_TYPE(left) == IS_LONG && O_TYPE(right) == IS_LONG) {
+							long diff = O_LVAL(left) - O_LVAL(right);
+							O_LVAL(left) = diff;
 							return left;
-		
 						} else {
 							return newNull();
 						}
-
 					}
-
 				}
 				break;
 				case AST_BINARY_OP_DIV: {
@@ -404,35 +399,33 @@ static Object* ex(ast_node* p)
 					if(!left || !right) {
 						return NULL;
 					} else {
-						if(O_TYPE(left) == IS_DOUBLE && O_TYPE(right) == IS_DOUBLE) {
-							if(!O_DVAL(right)) {
+						if(O_TYPE(left) == IS_LONG && O_TYPE(right) == IS_LONG) {
+							if(!O_LVAL(right)) {
 								printf("error: division by zero is undefined\n");
 								dump_fn_call_stack();
 								exit(1);
 							}
-							double result = O_DVAL(left) / O_DVAL(right);
+							long result = O_LVAL(left) / O_LVAL(right);
 							objectDestroy(left);
 							objectDestroy(right);
-							return newDouble(result);	
+							return newLong(result);	
 						} else {
 							return newNull();
 						}
-
 					}
 				}
 				break;
 				case AST_BINARY_OP_ADD: {
 					Object* left = ex(p->u1.binary_node.left);
 					Object* right = ex(p->u1.binary_node.right);
-
 					if(!left || !right) {
 						return NULL;
 					} else {
-						if(O_TYPE(left) == IS_DOUBLE && O_TYPE(right) == IS_DOUBLE) {
-							double sum = O_DVAL(left) + O_DVAL(right);
+						if(O_TYPE(left) == IS_LONG && O_TYPE(right) == IS_LONG) {
+							long sum = O_LVAL(left) + O_LVAL(right);
 							objectDestroy(left);
 							objectDestroy(right);
-							return newDouble(sum);	
+							return newLong(sum);	
 						} else {
 							return newNull();
 						}
@@ -446,10 +439,10 @@ static Object* ex(ast_node* p)
 					if(!left || !right) {
 						return NULL;
 					} else {
-						if(O_TYPE(left) == IS_DOUBLE && O_TYPE(right) == IS_DOUBLE) {
-							double sum = O_DVAL(left) * O_DVAL(right);
+						if(O_TYPE(left) == IS_LONG && O_TYPE(right) == IS_LONG) {
+							long sum = O_DVAL(left) * O_DVAL(right);
 							objectDestroy(left); objectDestroy(right);
-							return newDouble(sum);	
+							return newLong(sum);	
 						} else {
 							return newNull();
 						}
@@ -457,8 +450,7 @@ static Object* ex(ast_node* p)
 				} break;
 				case AST_BINARY_OP_ASSIGN: {
 					const char* id = p->u1.binary_node.left->u1.id_node.name;
-					Object* right = ex(p->u1.binary_node.right);	
-					
+					Object* right = ex(p->u1.binary_node.right);					
 					if(cg->current_symbol_table == NULL) {
 						mapInsert(cg->symbol_table, id, right);
 					} else {

@@ -938,7 +938,7 @@ YY_RULE_SETUP
 case 10:
 YY_RULE_SETUP
 #line 74 "lexer.l"
-{ yylval->number = atoi(yytext); return T_NUM;       }
+{ yylval->number = strtol(yytext, NULL, 10); return T_NUM;       }
 	YY_BREAK
 case 11:
 /* rule 11 can match eol */

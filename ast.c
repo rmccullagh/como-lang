@@ -20,8 +20,9 @@
 #include <string.h>
 #include <stdio.h>
 #include "ast.h"
+#include "globals.h"
 
-ast_node* ast_node_create_number(double value)
+ast_node* ast_node_create_number(long value)
 {
 	ast_node* retval = malloc(sizeof(ast_node));
 	retval->type = AST_NODE_TYPE_NUMBER;
@@ -146,7 +147,9 @@ void ast_node_free(ast_node* p)
 			free(p);		
 		break;
 		default:
-			printf("%s(): not implemented\n", __func__);
+			#ifdef COMO_DEBUG
+			printf("\n%s(): not implemented\n", __func__);
+			#endif
 		break;
 	}
 }

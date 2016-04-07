@@ -158,7 +158,7 @@ typedef struct {
 struct ast_node {
 	ast_node_type	type;
 	union {
-		double	number_value;
+		long number_value;
 		struct {
 			char* value;
 			size_t length;
@@ -180,7 +180,7 @@ struct ast_node {
 	} u1;
 };
 
-extern ast_node* ast_node_create_number(double value);
+extern ast_node* ast_node_create_number(long value);
 extern ast_node* ast_node_create_statement_list(size_t count, ...);
 extern void ast_node_statement_list_push(ast_node* node, ast_node* value);
 extern ast_node* ast_node_create_binary_op(ast_binary_op_type type, ast_node* left, ast_node* right);
