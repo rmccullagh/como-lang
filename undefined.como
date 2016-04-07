@@ -1,0 +1,12 @@
+func call()
+{
+	print(a);
+}
+
+func init()
+{
+	call();
+}
+
+
+init();

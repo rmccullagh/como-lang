@@ -45,6 +45,7 @@ typedef struct compiler_context {
 	Object* symbol_table;
 	Object* current_symbol_table;
 	como_stack* function_call_stack;
+	como_stack *global_call_stack;
 	Object* return_value;
 } compiler_context;
 
@@ -64,6 +65,7 @@ static void compiler_init(void)
 	cg->symbol_table = newMap(2);
 	cg->current_symbol_table = NULL;
 	cg->function_call_stack = NULL;
+	cg->global_call_stack = NULL;
 	cg->return_value = NULL;
 	cg->active_function_name = "__main__";
 	cg->filename = NULL;
@@ -72,6 +74,10 @@ static void compiler_init(void)
 	O_MRKD(var_dump) = C_EXT_FUNC;
 	mapInsert(cg->symbol_table, "var_dump", var_dump);
 	objectDestroy(var_dump);
+
+	//como_stack_push_ex(&cg->global_call_stack, call_info_create(
+//		id, fcall_lineno, fcall_colno
+//	));
 }
 
 static compiler_context* cg_context_create()
@@ -91,7 +97,22 @@ void dump_fn_call_stack(void)
 	while(top != NULL) {
 		Array* call_info = O_AVAL(((Object*)(top->value)));
 		printf("  at %s (%s:%ld:%ld)\n", 
-			O_SVAL(call_info->table[0])->value, O_SVAL(cg->filename)->value, O_LVAL(call_info->table[1]), 
+			O_SVAL(call_info->table[0])->value, O_SVAL(cg->filename)->value, 
+			O_LVAL(call_info->table[1]), 
+			O_LVAL(call_info->table[2]));
+
+		top = top->next;
+	}
+}
+
+static void como_print_stack_trace(void)
+{
+	como_stack* top = cg->global_call_stack;
+	while(top != NULL) {
+		Array* call_info = O_AVAL(((Object*)(top->value)));
+		printf("  at %s (%s:%ld:%ld)\n", 
+			O_SVAL(call_info->table[0])->value, O_SVAL(cg->filename)->value, 
+			O_LVAL(call_info->table[1]), 
 			O_LVAL(call_info->table[2]));
 
 		top = top->next;
@@ -109,8 +130,7 @@ static int is_truthy(Object* o)
 	}
 	if(O_TYPE(o) == IS_NULL) {
 		return 0;
-	}
-	
+	}	
 	if(O_TYPE(o) == IS_BOOL) {
 		return O_BVAL(o) ? 1 : 0;
 	}
@@ -118,11 +138,35 @@ static int is_truthy(Object* o)
 	return 0;
 }
 
-Object* call_info_create(const char* fname, int line, int col)
+static Object* call_info_create(const char* name, int line, int col)
 {
+	Object *call_info = newArray(3);
+	
+	Object* fname = newString(name);
+	arrayPush(call_info, fname);
+	objectDestroy(fname);
 
-	return NULL;
+	Object* lineno = newLong(line);
+	arrayPush(call_info, lineno);
+	objectDestroy(lineno); 
+
+	Object* colno = newLong(col);
+	arrayPush(call_info, colno);
+	objectDestroy(colno);
+
+	return call_info;
 }
+
+static void call_stack_push(Object *call_info)
+{
+	como_stack_push(&cg->function_call_stack, call_info);
+}
+
+static void como_stack_push_ex(como_stack **stack, Object *call_info)
+{
+	como_stack_push(stack, call_info);
+}
+
 
 static Object* ex(ast_node* p)
 {
@@ -160,6 +204,7 @@ static Object* ex(ast_node* p)
 			}
 			if(!value) {
 				printf("warning: undefined variable %s\n", p->u1.id_node.name);
+				como_print_stack_trace();
 				return newLong(0);
 			} else {
 				return value;
@@ -225,12 +270,17 @@ static Object* ex(ast_node* p)
 		} break;
 		case AST_NODE_TYPE_CALL: {
 			const char* id = p->u1.call_node.id->u1.id_node.name;
+			int fcall_lineno = p->u1.call_node.lineno;
+			int fcall_colno = p->u1.call_node.colno;
+
 			Object* fn;
 			if(cg->current_symbol_table == NULL) {
-				debug("searching global symbol table for id \"%s\" in scope \"%s\"\n", id, cg->active_function_name);
+				debug("searching global symbol table for id \"%s\" in scope \"%s\"\n", 
+						id, cg->active_function_name);
 				fn = mapSearch(cg->symbol_table, id);
 			} else {
-				debug("searching current symbol table for id \"%s\" in scope \"%s\"\n", id, cg->active_function_name);
+				debug("searching current symbol table for id \"%s\" in scope \"%s\"\n", 
+						id, cg->active_function_name);
 				fn = mapSearch(cg->current_symbol_table, id);
 				if(!fn) {
 					fn = mapSearch(cg->symbol_table, id);
@@ -242,8 +292,12 @@ static Object* ex(ast_node* p)
 				dump_fn_call_stack();
 				exit(1);
 			} else {
+
+				como_stack_push_ex(&cg->global_call_stack, call_info_create(
+					id, fcall_lineno, fcall_colno
+				));
 				
-				Object* call_info = newArray(2);
+				Object* call_info = newArray(3);
 				Object* fname = newString(cg->active_function_name);
 				arrayPush(call_info, fname);
 				objectDestroy(fname);
@@ -255,7 +309,8 @@ static Object* ex(ast_node* p)
 				objectDestroy(colno);
 
 				como_stack_push(&cg->function_call_stack, call_info);
-			
+		
+
 				if(O_TYPE(fn) != IS_FUNCTION) {
 					printf("error: \"%s\" is not callable\n", id);
 					dump_fn_call_stack();
@@ -475,7 +530,11 @@ void ast_compile(const char* filename, ast_node* program)
 	}
 
 	compiler_init();
-	
+
+	como_stack_push_ex(&cg->global_call_stack, call_info_create(
+ 		"__main__", 0, 0
+  ));
+
 	cg->filename = newString(filename);	
 	
 	Object* ret = ex(program);

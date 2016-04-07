@@ -31,8 +31,6 @@ typedef enum {
 	AST_NODE_TYPE_STATEMENT_LIST, AST_NODE_TYPE_BIN_OP,
 	AST_NODE_TYPE_IF, AST_NODE_TYPE_WHILE, AST_NODE_TYPE_FUNC_DECL, 
 	AST_NODE_TYPE_CALL, AST_NODE_TYPE_RET, AST_NODE_TYPE_PRINT,
-	AST_NODE_TYPE_TRY, AST_NODE_TYPE_CATCH, AST_NODE_TYPE_KEY_VALUE,
-	AST_NODE_TYPE_MAP
 } ast_node_type;
 
 typedef enum {
@@ -43,50 +41,10 @@ typedef enum {
 
 typedef struct ast_node ast_node;
 
-/*
- * The pair's first is the variable name as a string
- * The pair's second is a void * pointer casted to an ast_node
- * meaning that variables can hold any ast_node type
- * we must do a check to make sure it doesn't hold a statement
- * or something else weird
- *
- * Or it can hold a bucket index,
- *
- * Variables are defined at declaration time
- *
- * x // error, x is not defined
- * x = 1 // ok
- *
- * A variable can hold a function
- * 
- * There will be on symbol table
- * a Map that holds a void pointer, that will be cast to an ast_node*
- * On variable declaration, insert it into the hash table, the global symbol table
- * Using a hash table provides faster lookup than an O(n) linear search
- * through an array
- *
- * The variable value can be primitive, or be a function
- */
 typedef struct {
 	char* name;
 	size_t length;
 } ast_node_id;
-
-typedef struct {
-	void* value;
-} ast_node_undefined;
-
-typedef enum {
-	AST_NODE_RVALUE_TYPE_AST, AST_NODE_RVALUE_TYPE_PRIMITIVE
-} ast_node_rvalue_type;
-
-typedef struct {
-	ast_node_rvalue_type	type;
-	union {
-		ast_node*	ast_value;
-		Object*		primitive_value;	
-	} u1;
-} ast_node_rvalue;
 
 typedef struct ast_node_statements ast_node_statements;
 
@@ -136,25 +94,6 @@ typedef struct {
 	ast_node* expr;	
 } ast_node_print;
 
-typedef struct {
-	Object *value;
-} ast_node_string_literal;
-
-typedef struct {
-	ast_node *try_body;
-	ast_node *catch_name;
-	ast_node *catch_body;
-} ast_node_try;
-
-typedef struct {
-	ast_node* id;
-	ast_node* value;
-} ast_node_key_value;
-
-typedef struct {
-	ast_node* values;
-} ast_node_type_map;
-
 struct ast_node {
 	ast_node_type	type;
 	union {
@@ -163,54 +102,39 @@ struct ast_node {
 			char* value;
 			size_t length;
 		} string_value;
-		ast_node_id		id_node;
-		ast_node_undefined	undefined_node;
-		ast_node_rvalue		rval_node;
+		ast_node_id		      id_node;
 		ast_node_statements	statements_node;
-		ast_node_binary		binary_node;
-		ast_node_if		if_node;
-		ast_node_while		while_node;
-		ast_node_function       function_node;
-		ast_node_call           call_node;
-		ast_node_return		return_node;
-		ast_node_print		print_node;
-		ast_node_try		try_node;
-		ast_node_key_value      key_value_node;
-		ast_node_type_map       map_node;
+		ast_node_binary		  binary_node;
+		ast_node_if		      if_node;
+		ast_node_while		  while_node;
+		ast_node_function   function_node;
+		ast_node_call       call_node;
+		ast_node_return		  return_node;
+		ast_node_print		  print_node;
 	} u1;
 };
 
 extern ast_node* ast_node_create_number(long value);
 extern ast_node* ast_node_create_statement_list(size_t count, ...);
 extern void ast_node_statement_list_push(ast_node* node, ast_node* value);
-extern ast_node* ast_node_create_binary_op(ast_binary_op_type type, ast_node* left, ast_node* right);
-extern void ast_node_free(ast_node* node);
+extern ast_node* ast_node_create_binary_op(ast_binary_op_type type, 
+		ast_node* left, ast_node* right);
 
 extern ast_node* ast_node_create_id(const char* name);
-
 extern ast_node* ast_node_create_if(ast_node* condition, ast_node* b1, ast_node* b2);
-
 extern ast_node* ast_node_create_while(ast_node* condition, ast_node* body);
-
-extern ast_node* ast_node_create_function(const char* name, ast_node* parameters, ast_node* body);
-
+extern ast_node* ast_node_create_function(const char* name, 
+		ast_node* parameters, ast_node* body);
 extern ast_node* ast_node_create_call(ast_node* id, ast_node* arguments, int lineno, int col);
-
 extern ast_node* ast_node_create_return(ast_node* expr);
-
 extern ast_node* ast_node_create_print(ast_node* expr);
-
 extern ast_node* ast_node_create_string_literal(const char* str);
 
-
-extern ast_node* ast_node_create_try(ast_node* try_body, ast_node* catch_name, ast_node* catch_body);
-
-extern ast_node* ast_node_create_key_value_pair(ast_node* id, ast_node* value);
-
-extern ast_node* ast_node_create_map(ast_node* values);
-
+/*
+ * These functions are defined in other files outside ast.c
+ */
+extern void ast_node_free(ast_node* node);
 extern void ast_node_dump_tree(ast_node* node);
-
 extern void ast_compile(const char* file, ast_node* program);
 
 #endif
