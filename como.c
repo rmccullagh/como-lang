@@ -89,10 +89,7 @@ int main(int argc, char** argv)
 
 	free(text);
 
-	
 	ast_compile(argv[1], program);
-
-	ast_node_free(program);
 
 	return 0;
 }

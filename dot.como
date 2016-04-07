@@ -1,0 +1,3 @@
+toUpper = String.toUpper;
+
+toUpper(1);

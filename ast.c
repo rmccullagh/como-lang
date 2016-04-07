@@ -22,6 +22,7 @@
 #include "ast.h"
 #include "globals.h"
 
+
 ast_node* ast_node_create_number(long value)
 {
 	ast_node* retval = malloc(sizeof(ast_node));

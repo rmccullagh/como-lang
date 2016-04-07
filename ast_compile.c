@@ -186,6 +186,7 @@ static Object* ex(ast_node* p)
 			Object* expr = ex(p->u1.print_node.expr);
 			objectEcho(expr);
 			objectDestroy(expr);
+			fprintf(stdout, "\n");
 			return newNull();
 		}
 		break;
@@ -419,6 +420,10 @@ static Object* ex(ast_node* p)
 					printf("%s(): invalid binary op(%d)\n", __func__, p->u1.binary_node.type);
 					exit(1);
 				break;
+				case AST_BINARY_OP_DOT: {
+					printf("dot operator not implemented\n");
+					exit(1);				
+				} break;
 				case AST_BINARY_OP_CMP: {
 					Object* left = ex(p->u1.binary_node.left);
 					Object* right = ex(p->u1.binary_node.right);
@@ -482,7 +487,16 @@ static Object* ex(ast_node* p)
 							objectDestroy(right);
 							return newLong(sum);	
 						} else {
-							return newNull();
+							char *leftstr = objectToString(left);
+							char *rightstr = objectToString(right);
+							Object *oleft = newString(leftstr);
+							Object *oright = newString(rightstr);
+							Object *ret = stringCat(oleft, oright);
+							free(leftstr);
+							free(rightstr);
+							objectDestroy(oleft);
+							objectDestroy(oright);
+							return ret;
 						}
 					}
 				}
@@ -495,7 +509,7 @@ static Object* ex(ast_node* p)
 						return NULL;
 					} else {
 						if(O_TYPE(left) == IS_LONG && O_TYPE(right) == IS_LONG) {
-							long sum = O_DVAL(left) * O_DVAL(right);
+							long sum = O_LVAL(left) * O_LVAL(right);
 							objectDestroy(left); objectDestroy(right);
 							return newLong(sum);	
 						} else {
@@ -538,6 +552,9 @@ void ast_compile(const char* filename, ast_node* program)
 	cg->filename = newString(filename);	
 	
 	Object* ret = ex(program);
+	
+	OBJECT_DUMP(cg->symbol_table);
+
 	objectDestroy(cg->symbol_table);
 	objectDestroy(ret);
 	objectDestroy(cg->filename);

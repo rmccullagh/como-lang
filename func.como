@@ -1,12 +1,1 @@
-func test() {
-	return 1;
-}
-
-func main() {
-	
-	name = test;
-	return name();
-}
-
-
-print(main());
+a();

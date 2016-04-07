@@ -1,9 +1,6 @@
 func main(name) {
-	if(name == "ryan") {
-		print("yes");
-	} else {
-		print("no");
-	}
+	return name + name;
 }
 
-main("this\n");
+
+print(main("this"));
