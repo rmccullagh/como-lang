@@ -60,8 +60,7 @@ typedef void* yyscan_t;
 } 
 
 %left T_CMP
-%left ','
-%left '='
+%precedence '='
 %left '-'
 %left '+'
 %left '*'
@@ -80,8 +79,7 @@ typedef void* yyscan_t;
 %token T_RETURN
 %token T_CMP
 %token T_PRINT
-%left T_NOELSE
-%left T_ELSE
+%token T_NOELSE
 
 
 %token <number> T_NUM
@@ -106,7 +104,7 @@ start:
 
 top_statement_list:
  top_statement_list top_statement { ast_node_statement_list_push($1, $2); $$ = $1; }
- | /* Empty */ { $$ = ast_node_create_statement_list(0); }
+ | %empty { $$ = ast_node_create_statement_list(0); }
 ;
 
 top_statement:
@@ -115,7 +113,7 @@ top_statement:
 
 inner_statement_list:
  inner_statement_list inner_statement { ast_node_statement_list_push($1, $2); $$ = $1; }
- | /* Empty */ { $$ = ast_node_create_statement_list(0); } 
+ | %empty { $$ = ast_node_create_statement_list(0); } 
 ;
 
 inner_statement:
@@ -139,9 +137,8 @@ return_statement:
 ;
 
 optional_expression:
- /* Empty */ { $$ = NULL; }
- |
  expr { $$ = $1; }
+ | %empty { $$ = NULL; }
 ;
 
 compound_statement:
@@ -176,7 +173,7 @@ function_decl_statement:
 optional_parameter_list:
  parameter_list { $$ = $1; }
  |
- /* Empty */ { $$ = ast_node_create_statement_list(0); }
+ %empty { $$ = ast_node_create_statement_list(0); }
 ;
 
 parameter_list:
@@ -192,7 +189,7 @@ parameter:
 optional_argument_list:
  argument_list { $$ = $1; }
  |
- /* empty */ { $$ = ast_node_create_statement_list(0); }
+ %empty { $$ = ast_node_create_statement_list(0); }
 ;
 
 argument_list:

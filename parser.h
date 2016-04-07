@@ -1,21 +1,19 @@
+/* A Bison parser, made by GNU Bison 3.0.2.  */
 
-/* A Bison parser, made by GNU Bison 2.4.  */
+/* Bison interface for Yacc-like parsers in C
 
-/* Skeleton interface for Bison's Yacc-like parsers in C
-   
-      Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
-   Free Software Foundation, Inc.
-   
+   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
+
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation, either version 3 of the License, or
    (at your option) any later version.
-   
+
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-   
+
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
@@ -28,14 +26,21 @@
    special exception, which will cause the skeleton and the resulting
    Bison output files to be licensed under the GNU General Public
    License without this special exception.
-   
+
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
+#ifndef YY_YY_PARSER_H_INCLUDED
+# define YY_YY_PARSER_H_INCLUDED
+/* Debug traces.  */
+#ifndef YYDEBUG
+# define YYDEBUG 0
+#endif
+#if YYDEBUG
+extern int yydebug;
+#endif
 /* "%code requires" blocks.  */
-
-/* Line 1676 of yacc.c  */
-#line 23 "parser.y"
+#line 35 "parser.y" /* yacc.c:1909  */
 
 
 #ifndef YY_TYPEDEF_YY_SCANNER_T
@@ -44,70 +49,62 @@ typedef void* yyscan_t;
 #endif
 
 
+#line 53 "parser.h" /* yacc.c:1909  */
 
-
-/* Line 1676 of yacc.c  */
-#line 51 "parser.h"
-
-/* Tokens.  */
+/* Token type.  */
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
-   /* Put the tokens into the symbol table, so that GDB and other debuggers
-      know about them.  */
-   enum yytokentype {
-     END = 0,
-     T_CMP = 258,
-     T_IF = 259,
-     T_ELSE = 260,
-     T_WHILE = 261,
-     T_FUNC = 262,
-     T_RETURN = 263,
-     T_PRINT = 264,
-     T_NOELSE = 265,
-     T_NUM = 266,
-     T_ID = 267,
-     T_STR_LIT = 268
-   };
+  enum yytokentype
+  {
+    END = 0,
+    T_CMP = 258,
+    T_IF = 259,
+    T_ELSE = 260,
+    T_WHILE = 261,
+    T_FUNC = 262,
+    T_RETURN = 263,
+    T_PRINT = 264,
+    T_NOELSE = 265,
+    T_NUM = 266,
+    T_ID = 267,
+    T_STR_LIT = 268
+  };
 #endif
 
-
-
+/* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE
+typedef union YYSTYPE YYSTYPE;
+union YYSTYPE
 {
-
-/* Line 1676 of yacc.c  */
-#line 43 "parser.y"
+#line 55 "parser.y" /* yacc.c:1909  */
 
 	double number;
 	char* id;
 	char* stringliteral;
 	ast_node* ast;
 
-
-
-/* Line 1676 of yacc.c  */
-#line 91 "parser.h"
-} YYSTYPE;
+#line 87 "parser.h" /* yacc.c:1909  */
+};
 # define YYSTYPE_IS_TRIVIAL 1
-# define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
 #endif
 
-
-
+/* Location type.  */
 #if ! defined YYLTYPE && ! defined YYLTYPE_IS_DECLARED
-typedef struct YYLTYPE
+typedef struct YYLTYPE YYLTYPE;
+struct YYLTYPE
 {
   int first_line;
   int first_column;
   int last_line;
   int last_column;
-} YYLTYPE;
-# define yyltype YYLTYPE /* obsolescent; will be withdrawn */
+};
 # define YYLTYPE_IS_DECLARED 1
 # define YYLTYPE_IS_TRIVIAL 1
 #endif
 
 
 
+int yyparse (ast_node** ast, yyscan_t scanner);
+
+#endif /* !YY_YY_PARSER_H_INCLUDED  */
