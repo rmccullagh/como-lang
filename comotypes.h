@@ -8,6 +8,7 @@
 #define COMO_TYPE_IS_FUNC   (1 << 1)
 #define COMO_TYPE_IS_CALLABLE (1 << 2)
 #define COMO_TYPE_IS_READONLY (1 << 3)
+#define COMO_TYPE_IS_SEALED (1 << 4)
 
 typedef struct como_object como_object;
 typedef como_object *(*como_type_method)(como_object *, Object *);

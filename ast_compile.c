@@ -63,7 +63,11 @@ static como_object *como_do_call(ast_node *p)
 	Object *fimpl = callablevar->value;
 
 	if(O_TYPE(fimpl) != IS_FUNCTION) {
-		como_error_noreturn("object impl was not IS_FUNCTION\n");
+		como_error_noreturn("object container type was not IS_FUNCTION\n");
+	}
+
+	if(!(O_MRKD(fimpl) & COMO_TYPE_IS_FUNC)) {
+		como_error_noreturn("object implicit type is not COMO_TYPE_IS_FUNC\n");	
 	}
 
 	como_type_method method = (como_type_method)O_FVAL(fimpl);
@@ -164,6 +168,18 @@ static como_object* ex(ast_node* p)
 					como_object* right = ex(p->u1.binary_node.right);
 					Object *value = newFunction((void *)right);
 					O_MRKD(value) = COMO_TYPE_IS_OBJECT;
+					Object *oval = mapSearch(cg->symbol_table, id);
+					if(oval != NULL) {
+						if(O_TYPE(oval) != IS_FUNCTION) {
+							como_error_noreturn("object is IS_FUNCTION\n");
+						}
+						if(O_MRKD(oval) & COMO_TYPE_IS_OBJECT) {
+							como_object *impl = (como_object *)O_FVAL(oval);
+							if(impl->flags & COMO_TYPE_IS_SEALED) {
+								como_error_noreturn("%s is sealed and cannot change\n", id);
+							}
+						}
+					}	
 					mapInsert(cg->symbol_table, id, value);
 					objectDestroy(value);
 					return right;

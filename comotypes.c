@@ -42,6 +42,7 @@ como_object *como_type_init_string(char *sval)
 	o->type->name = "String";
 	o->type->flags = 0;
 	o->type->properties = newMap(2);
+
 	Object *length = newFunction(como_type_string_length);
 	O_MRKD(length) = COMO_TYPE_IS_FUNC;
 	mapInsert(o->type->properties, "length", length);
@@ -73,9 +74,11 @@ como_object *como_type_new_int_object(long lval)
 	o->type->name = "Int";
 	o->type->properties = newMap(2);
 	o->type->flags = 0;
+
 	Object *toString = newFunction(como_type_int_to_string);
 	O_MRKD(toString) = COMO_TYPE_IS_FUNC;
 	mapInsert(o->type->properties, "toString", toString);
+	
 	objectDestroy(toString);
 	return o;
 }
@@ -90,9 +93,11 @@ como_object *como_type_new_double_object(double dval)
 	o->type->name = "Double";
 	o->type->properties = newMap(2);
 	o->type->flags = 0;
+	
 	Object *toString = newFunction(como_type_int_to_string);
 	O_MRKD(toString) = COMO_TYPE_IS_FUNC;
 	mapInsert(o->type->properties, "toString", toString);
+	
 	objectDestroy(toString);
 	return o;
 }
