@@ -13,16 +13,6 @@ void ast_node_free(ast_node* p)
 			free(p->u1.string_value.value);
 			free(p);
 		break;
-		case AST_NODE_TYPE_RET:
-			ast_node_free(p->u1.return_node.expr);
-			free(p);
-		break;
-		case AST_NODE_TYPE_IF:
-			ast_node_free(p->u1.if_node.condition);
-			ast_node_free(p->u1.if_node.b1);
-			ast_node_free(p->u1.if_node.b2);
-			free(p);
-		break;
 		case AST_NODE_TYPE_NUMBER:
 		case AST_NODE_TYPE_DOUBLE:
 			free(p);
@@ -36,6 +26,11 @@ void ast_node_free(ast_node* p)
 			free(p);
 		} 
 		break;
+		case AST_NODE_TYPE_CALL:
+			ast_node_free(p->u1.call_node.expression);
+			ast_node_free(p->u1.call_node.arguments);
+			free(p);
+		break;
 		case AST_NODE_TYPE_BIN_OP:
 			ast_node_free(p->u1.binary_node.left);
 			ast_node_free(p->u1.binary_node.right);
@@ -45,25 +40,8 @@ void ast_node_free(ast_node* p)
 			free(p->u1.id_node.name);
 			free(p);
 		break;
-		case AST_NODE_TYPE_FUNC_DECL:
-			free(p->u1.function_node.name);
-			ast_node_free(p->u1.function_node.parameter_list);
-			ast_node_free(p->u1.function_node.body);
-			free(p);		
-		break;
-		case AST_NODE_TYPE_PRINT:
-			ast_node_free(p->u1.print_node.expr);
-			free(p);		
-		break;
-		case AST_NODE_TYPE_CALL:
-			ast_node_free(p->u1.call_node.id);
-			ast_node_free(p->u1.call_node.arguments);
-			free(p);		
-		break;
 		default:
-			#ifdef COMO_DEBUG
 			printf("\n%s(): not implemented\n", __func__);
-			#endif
 		break;
 	}
 }

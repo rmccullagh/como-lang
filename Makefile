@@ -1,17 +1,14 @@
 CFLAGS = -g -Wall -Wextra -Wno-unused-function -Wno-unused-parameter
 LIBS = -lobject -leasyio
 
-como: ast.o object_api.o ast_node_free.o ast_node_dump_tree.o stack.o ast_compile.o lexer.o parser.o como.o
-	$(CC) $(CFLAGS) ast.o object_api.o ast_node_free.o ast_node_dump_tree.o stack.o ast_compile.o parser.o lexer.o como.o $(LIBS) -o como
+como: ast.o object_api.o comotypes.o ast_node_free.o stack.o ast_compile.o lexer.o parser.o como.o
+	$(CC) $(CFLAGS) ast.o object_api.o comotypes.o ast_node_free.o stack.o ast_compile.o parser.o lexer.o como.o $(LIBS) -o como
 
 ast.o: ast.c
 	$(CC) $(CFLAGS) -c ast.c
 
 ast_node_free.o: ast_node_free.c
 	$(CC) $(CFLAGS) -c ast_node_free.c
-
-ast_node_dump_tree.o: ast_node_dump_tree.c
-	$(CC) $(CFLAGS) -c ast_node_dump_tree.c
 
 ast_compile.o: ast_compile.c
 	$(CC) $(CFLAGS) -c ast_compile.c
@@ -21,6 +18,9 @@ stack.o: stack.c
 
 object_api.o: object_api.c
 	$(CC) $(CFLAGS) -c object_api.c
+
+comotypes.o: comotypes.c
+	$(CC) $(CFLAGS) -c comotypes.c
 
 lexer.o: lexer.c
 	$(CC) $(CFLAGS) -c lexer.c

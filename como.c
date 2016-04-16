@@ -81,35 +81,11 @@ static const char * ast_binary_op_string(ast_node_binary n)
 		case AST_BINARY_OP_ADD:
 			return "+";
 		break;	
-		case AST_BINARY_OP_MINUS:
-			return "-";
-		break;	
 		case AST_BINARY_OP_ASSIGN:
 			return "=";
 		break;	
-		case AST_BINARY_OP_TIMES:
-			return "*";
-		break;	
-		case AST_BINARY_OP_DIV:
-			return "/";
-		break;	
-		case AST_BINARY_OP_CMP:
-			return "==";
-		break;
-		case AST_BINARY_OP_REM:
-			return "%";
-		break;	
 		case AST_BINARY_OP_DOT:
 			return ".";
-		break;	
-		case AST_BINARY_OP_NOT_EQUAL:
-			return "!=";
-		break;	
-		case AST_BINARY_OP_LESS_THAN:
-			return "<";
-		break;	
-		case AST_BINARY_OP_GREATER_THAN:
-			return ">";
 		break;	
 	}
 
@@ -155,41 +131,15 @@ static void ast_pretty_print(ast_node *p, size_t indent)
 			ast_pretty_print(p->u1.binary_node.right, indent);
 			printf(")");
 		break;
-		case AST_NODE_TYPE_IF:
-			printf("AST_NODE_TYPE_IF\n");
-		break;
-		case AST_NODE_TYPE_WHILE:
-			printf("AST_NODE_TYPE_WHILE\n");
-		break;
-		case AST_NODE_TYPE_FUNC_DECL:
-			printf("AST_NODE_TYPE_FUNC_DECL\n");
-		break;
-		case AST_NODE_TYPE_CALL: {
+		case AST_NODE_TYPE_CALL:
 			printf("(call\n");
-			indent++;
+			indent = indent + 1;
 			INDENT_LOOP(indent);
-			ast_node_call call_node = p->u1.call_node;
-			ast_pretty_print(call_node.id, indent);
-			ast_node *args = call_node.arguments;
-			ast_pretty_print(args, indent);
-			/*
-			if(args->u1.statements_node.count) {
-				printf("\n");
-				INDENT_LOOP(indent);
-				size_t i;
-				for(i = 0; i < args->u1.statements_node.count; i++) {
-					ast_pretty_print(args->u1.statements_node.statement_list[i], indent);
-				}
-			}*/
-			--indent;
+			ast_pretty_print(p->u1.call_node.expression, indent);
+			printf(" ");
+			ast_pretty_print(p->u1.call_node.arguments, indent);
+			indent = indent > 0 ? indent- 1 : 0;
 			printf(")");
-		}
-		break;
-		case AST_NODE_TYPE_RET:
-			printf("AST_NODE_TYPE_RET\n");
-		break;
-		case AST_NODE_TYPE_PRINT:
-			printf("AST_NODE_TYPE_PRINT\n");
 		break;
 	}
 }

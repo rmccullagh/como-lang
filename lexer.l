@@ -57,10 +57,6 @@ A		[a-zA-Z_0-9]
 
 %%
 
-"if"            { return T_IF;                }
-"else"          { return T_ELSE;              }
-"!="            { return T_NOT_EQUAL;         }
-"=="            { return T_CMP;               }
 {WHITE_SPACE}	  { /* Skipping Blanks Today */ }
 {L}{A}*         {
 	size_t len = strlen(yytext);

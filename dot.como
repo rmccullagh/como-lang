@@ -1,3 +1,4 @@
-toUpper = String.toUpper;
+len = "ryan".toUpperCase().length().toString();
 
-toUpper(1);
+
+

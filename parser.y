@@ -44,31 +44,18 @@ typedef void* yyscan_t;
 	ast_node* ast;
 }
 
+%token '.'
 %token '='
-%token '-'
 %token '+'
-%token '*'
-%token '/'
-%token T_CMP
-%token T_IF "if (T_IF)"
-%token T_ELSE
-%token T_NOELSE
-%token T_NOT_EQUAL
 %token <number> T_NUM
 %token <dval> T_DOUBLE
 %token <id> T_ID
 %token <stringliteral> T_STR_LIT
 
 %type <ast> expression statement expression_statement statement_list
-%type <ast> value
-%type <ast> if_statement_without_else selection_statement
-%type <ast> optional_argument_list argument_list argument
+%type <ast> value primary call accessor
 
-%precedence '='
-%nonassoc T_CMP T_NOT_EQUAL
-%nonassoc '<' '>'
-%left '-' '+'
-%left '/' '*'
+%left '=' '+'
 
 %%
 
@@ -77,77 +64,55 @@ start
     : statement_list              { *ast = $1;                             }
     ;
 
+primary
+    : value { $$ = $1;    }
+    | accessor { $$ = $1; }
+    | call { $$ = $1;     }
+    ;
+
+call
+    : primary '(' ')' {
+		     $$ = ast_node_create_call($1, ast_node_create_statement_list(0), 
+                @1.first_line);
+    }
+    ;
+
+accessor
+    : primary '.' T_ID {
+        $$ = ast_node_create_binary_op(AST_BINARY_OP_DOT, $1, 
+                  ast_node_create_id($3, @3.first_line), 
+                  @1.first_line);
+             free($3);
+    }
+    ;
+
 value
-    : T_NUM                       { $$ = ast_node_create_number($1);       }
-    | T_DOUBLE                    { $$ = ast_node_create_double($1);       }
-    | T_ID                        { $$ = ast_node_create_id($1); free($1); }
+    : T_NUM                       { $$ = ast_node_create_number($1, @1.first_line);       }
+    | T_DOUBLE                    { $$ = ast_node_create_double($1, @1.first_line);       }
+    | T_ID                        { $$ = ast_node_create_id($1, @1.first_line); free($1);                }
     | T_STR_LIT                   { 
-        $$ = ast_node_create_string_literal($1); 
+        $$ = ast_node_create_string_literal($1, @1.first_line); 
         free($1); 
     }
     ;
 
 expression
     : value                       { $$ = $1;                               }
-    | expression T_NOT_EQUAL expression {
-        $$ = ast_node_create_binary_op(AST_BINARY_OP_NOT_EQUAL, $1, $3);
-    }
-    | expression T_CMP expression {
-        $$ = ast_node_create_binary_op(AST_BINARY_OP_CMP, $1, $3);
-    }
-    | expression '<' expression {
-        $$ = ast_node_create_binary_op(AST_BINARY_OP_LESS_THAN, $1, $3);
-    }
-    | expression '>' expression {
-        $$ = ast_node_create_binary_op(AST_BINARY_OP_GREATER_THAN, $1, $3);
-    }
     | T_ID       '=' expression   { 
         $$ = ast_node_create_binary_op(AST_BINARY_OP_ASSIGN,
-               ast_node_create_id($1), $3);
+               ast_node_create_id($1, @1.first_line), $3, @1.first_line);
              free($1);
     }
-    | T_ID       '(' optional_argument_list ')' {
-        $$ = ast_node_create_call(ast_node_create_id($1), $3, 
-                 @1.first_line, @1.first_column);
-        free($1);
-    }
-    | expression '-' expression   {
-        $$ = ast_node_create_binary_op(AST_BINARY_OP_MINUS, $1, $3);
-    }
+    | accessor { $$ = $1; }
+    | call     { $$ = $1; }
     | expression '+' expression   {
-        $$ = ast_node_create_binary_op(AST_BINARY_OP_ADD, $1, $3);
+        $$ = ast_node_create_binary_op(AST_BINARY_OP_ADD, $1, $3, @1.first_line);
     }
-    | expression '/' expression   {
-        $$ = ast_node_create_binary_op(AST_BINARY_OP_DIV, $1, $3);
-    }
-    | expression '*' expression   {
-        $$ = ast_node_create_binary_op(AST_BINARY_OP_TIMES, $1, $3);
-    }
-    | '(' expression ')'          { $$ = $2;                                }
-    ;
-
-optional_argument_list
-    : %empty                      { $$ = ast_node_create_statement_list(0); }
-    | argument_list               { $$ = $1;                                }
-    ;
-
-argument_list
-    : argument                    { 
-        $$ = ast_node_create_statement_list(1, $1);
-    }
-    | argument_list ',' argument  { 
-        ast_node_statement_list_push($1, $3); 
-        $$ = $1;
-    }
-    ;
-
-argument
-    : expression                  { $$ = $1;                                }
+    | '(' expression ')' { $$ = $2; }
     ;
 
 statement
     : expression_statement        { $$ = $1;                                }
-    | selection_statement         { $$ = $1;                                }
     ;
 
 statement_list
@@ -160,20 +125,6 @@ statement_list
 
 expression_statement
     : expression ';'              { $$ = $1;                                }
-    ;
-
-if_statement_without_else
-    : T_IF '(' expression ')' '{' statement_list '}'  {
-        $$ = ast_node_create_if($3, $6, NULL);
-    }
-    ;
-
-selection_statement
-    : if_statement_without_else %prec T_NOELSE { $$ = $1;                   }
-    | if_statement_without_else T_ELSE '{' statement_list '}' { 
-         $1->u1.if_node.b2 = $4; 
-         $$ = $1; 
-    }
     ;
 
 %%

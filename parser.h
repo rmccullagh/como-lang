@@ -56,15 +56,10 @@ typedef void* yyscan_t;
 # define YYTOKENTYPE
   enum yytokentype
   {
-    T_CMP = 258,
-    T_IF = 259,
-    T_ELSE = 260,
-    T_NOELSE = 261,
-    T_NOT_EQUAL = 262,
-    T_NUM = 263,
-    T_DOUBLE = 264,
-    T_ID = 265,
-    T_STR_LIT = 266
+    T_NUM = 258,
+    T_DOUBLE = 259,
+    T_ID = 260,
+    T_STR_LIT = 261
   };
 #endif
 
@@ -81,7 +76,7 @@ union YYSTYPE
 	char* stringliteral;
 	ast_node* ast;
 
-#line 85 "parser.h" /* yacc.c:1909  */
+#line 80 "parser.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

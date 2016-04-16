@@ -22,18 +22,20 @@
 #include "ast.h"
 #include "globals.h"
 
-ast_node* ast_node_create_number(long value)
+ast_node* ast_node_create_number(long value, int lineno)
 {
 	ast_node* retval = malloc(sizeof(ast_node));
 	retval->type = AST_NODE_TYPE_NUMBER;
+	retval->lineno = lineno;
 	retval->u1.number_value = value;
 	return retval;
 }
 
-ast_node* ast_node_create_double(double value)
+ast_node* ast_node_create_double(double value, int lineno)
 {
 	ast_node* retval = malloc(sizeof(ast_node));
 	retval->type = AST_NODE_TYPE_DOUBLE;
+	retval->lineno = lineno;
 	retval->u1.double_value = value;
 	return retval;
 }
@@ -87,10 +89,12 @@ void ast_node_statement_list_push(ast_node* node, ast_node* value)
 	}
 }
 
-ast_node* ast_node_create_binary_op(ast_binary_op_type type, ast_node* left, ast_node* right)
+ast_node* ast_node_create_binary_op(ast_binary_op_type type, ast_node* left, ast_node* right, 
+		int lineno)
 {
 	ast_node* retval = malloc(sizeof(ast_node));
 	retval->type = AST_NODE_TYPE_BIN_OP;
+	retval->lineno = lineno;
 	retval->u1.binary_node.type = type;
 	retval->u1.binary_node.left = left;
 	retval->u1.binary_node.right = right;
@@ -98,10 +102,11 @@ ast_node* ast_node_create_binary_op(ast_binary_op_type type, ast_node* left, ast
 	return retval;
 }
 
-ast_node* ast_node_create_id(const char* name)
+ast_node* ast_node_create_id(const char* name, int lineno)
 {
 	ast_node* retval = malloc(sizeof(ast_node));
 	retval->type = AST_NODE_TYPE_ID;
+	retval->lineno = lineno;
 	size_t len = strlen(name);
 	retval->u1.id_node.length = len;
 	retval->u1.id_node.name = malloc(len + 1);
@@ -109,74 +114,25 @@ ast_node* ast_node_create_id(const char* name)
 	return retval;
 }
 
-ast_node* ast_node_create_if(ast_node* condition, ast_node* b1, ast_node* b2)
-{
-	ast_node* retval = malloc(sizeof(ast_node));
-	retval->type = AST_NODE_TYPE_IF;
-	retval->u1.if_node.condition = condition;
-	retval->u1.if_node.b1 = b1;
-	retval->u1.if_node.b2 = b2;
-	return retval;
-}
-
-ast_node* ast_node_create_while(ast_node* condition, ast_node* body)
-{
-	ast_node* retval = malloc(sizeof(ast_node));
-	retval->type = AST_NODE_TYPE_WHILE;
-	retval->u1.while_node.condition = condition;
-	retval->u1.while_node.body = body;
-	return retval;
-}
-
-ast_node* ast_node_create_function(const char* name, ast_node* parameters, ast_node* body)
-{
-	ast_node* retval = malloc(sizeof(ast_node));
-	retval->type = AST_NODE_TYPE_FUNC_DECL;
-	size_t len = strlen(name);
-	retval->u1.function_node.name_length = len;
-	retval->u1.function_node.name = malloc(len + 1);
-	memcpy(retval->u1.function_node.name, name, len + 1);
-	retval->u1.function_node.parameter_list = parameters;
-	retval->u1.function_node.body = body;	
-	return retval;
-}
-
-ast_node* ast_node_create_call(ast_node* id, ast_node* args, int lineno, int col)
-{
-	ast_node* retval = malloc(sizeof(ast_node));
-	retval->type = AST_NODE_TYPE_CALL;
-	retval->u1.call_node.id = id;
-	retval->u1.call_node.arguments = args;
-	retval->u1.call_node.lineno = lineno;
-	retval->u1.call_node.colno = col;
-	return retval;
-
-}
-
-ast_node* ast_node_create_return(ast_node* expr)
-{
-	ast_node* retval = malloc(sizeof(ast_node));
-	retval->type = AST_NODE_TYPE_RET;
-	retval->u1.return_node.expr = expr;
-	return retval;
-}
-
-
-ast_node* ast_node_create_print(ast_node* expr)
-{
-	ast_node* retval = malloc(sizeof(ast_node));
-	retval->type = AST_NODE_TYPE_PRINT;
-	retval->u1.print_node.expr = expr;
-	return retval;
-}
-
-ast_node* ast_node_create_string_literal(const char* str)
+ast_node* ast_node_create_string_literal(const char* str, int lineno)
 {
 	ast_node* retval = malloc(sizeof(ast_node));
 	retval->type = AST_NODE_TYPE_STRING;
+	retval->lineno = lineno;
 	retval->u1.string_value.length = strlen(str);
 	retval->u1.string_value.value = malloc(retval->u1.string_value.length + 1);
 	memcpy(retval->u1.string_value.value, str, retval->u1.string_value.length);
 	retval->u1.string_value.value[retval->u1.string_value.length] = '\0';
 	return retval;
 }
+
+ast_node *ast_node_create_call(ast_node *expression, ast_node *args, int lineno)
+{
+	ast_node* retval = malloc(sizeof(ast_node));
+	retval->type = AST_NODE_TYPE_CALL;
+	retval->lineno = lineno;
+	retval->u1.call_node.expression = expression;
+	retval->u1.call_node.arguments = args;
+	return retval;
+}
+
