@@ -27,7 +27,7 @@
  */
 typedef enum {
 	AST_NODE_TYPE_NUMBER, AST_NODE_TYPE_STRING,
-	AST_NODE_TYPE_ID, AST_NODE_TYPE_UNDEFINED,
+	AST_NODE_TYPE_ID, AST_NODE_TYPE_DOUBLE,
 	AST_NODE_TYPE_STATEMENT_LIST, AST_NODE_TYPE_BIN_OP,
 	AST_NODE_TYPE_IF, AST_NODE_TYPE_WHILE, AST_NODE_TYPE_FUNC_DECL, 
 	AST_NODE_TYPE_CALL, AST_NODE_TYPE_RET, AST_NODE_TYPE_PRINT,
@@ -36,7 +36,8 @@ typedef enum {
 typedef enum {
 	AST_BINARY_OP_ADD, AST_BINARY_OP_MINUS, AST_BINARY_OP_ASSIGN,
 	AST_BINARY_OP_TIMES, AST_BINARY_OP_DIV, AST_BINARY_OP_CMP,
-	AST_BINARY_OP_REM, AST_BINARY_OP_DOT
+	AST_BINARY_OP_REM, AST_BINARY_OP_DOT, AST_BINARY_OP_NOT_EQUAL,
+	AST_BINARY_OP_LESS_THAN, AST_BINARY_OP_GREATER_THAN,
 } ast_binary_op_type;
 
 typedef struct ast_node ast_node;
@@ -94,11 +95,11 @@ typedef struct {
 	ast_node* expr;	
 } ast_node_print;
 
-
 struct ast_node {
 	ast_node_type	type;
 	union {
 		long number_value;
+		double double_value;
 		struct {
 			char* value;
 			size_t length;
@@ -116,6 +117,7 @@ struct ast_node {
 };
 
 extern ast_node* ast_node_create_number(long value);
+extern ast_node* ast_node_create_double(double value);
 extern ast_node* ast_node_create_statement_list(size_t count, ...);
 extern void ast_node_statement_list_push(ast_node* node, ast_node* value);
 extern ast_node* ast_node_create_binary_op(ast_binary_op_type type, 

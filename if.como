@@ -1,14 +1,1 @@
-func fn(name) {
-	if(name)
-		return 10 * 10;
-	else
-		return 0;
-}
-
-
-func call_fn()
-{
-	print(fn(1) * fn(0));
-}
-
-call_fn();
+name = if(1) {}

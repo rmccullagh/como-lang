@@ -1,0 +1,19 @@
+notequal = "ryan" != 1;
+status = "ryan" != "ryan";
+alessthanb = "a" < "b";
+
+test2 = 15 < 20;
+test3 = "ryan" < "ryan";
+
+test4 = 0;
+test5 = 1;
+
+test6 = test4 < test5;
+
+test7 = 25;
+
+if(test6 - 1 == 0) {
+	test7 = 1;
+} else {
+	test7 = 0;
+}

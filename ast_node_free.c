@@ -24,6 +24,7 @@ void ast_node_free(ast_node* p)
 			free(p);
 		break;
 		case AST_NODE_TYPE_NUMBER:
+		case AST_NODE_TYPE_DOUBLE:
 			free(p);
 		break;
 		case AST_NODE_TYPE_STATEMENT_LIST: {

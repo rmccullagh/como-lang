@@ -16,6 +16,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <float.h>
 #include <string.h>
 #include <easyio.h>
 #include "ast.h"
@@ -67,6 +68,132 @@ ast_node* como_ast_create(const char* text)
 	return statements;
 }
 
+#define INDENT_LOOP(i) do { \
+	size_t n; \
+	for(n = 0; n < i; n++) { \
+		printf(" "); \
+	} \
+} while(0)
+
+static const char * ast_binary_op_string(ast_node_binary n)
+{
+	switch(n.type) {
+		case AST_BINARY_OP_ADD:
+			return "+";
+		break;	
+		case AST_BINARY_OP_MINUS:
+			return "-";
+		break;	
+		case AST_BINARY_OP_ASSIGN:
+			return "=";
+		break;	
+		case AST_BINARY_OP_TIMES:
+			return "*";
+		break;	
+		case AST_BINARY_OP_DIV:
+			return "/";
+		break;	
+		case AST_BINARY_OP_CMP:
+			return "==";
+		break;
+		case AST_BINARY_OP_REM:
+			return "%";
+		break;	
+		case AST_BINARY_OP_DOT:
+			return ".";
+		break;	
+		case AST_BINARY_OP_NOT_EQUAL:
+			return "!=";
+		break;	
+		case AST_BINARY_OP_LESS_THAN:
+			return "<";
+		break;	
+		case AST_BINARY_OP_GREATER_THAN:
+			return ">";
+		break;	
+	}
+
+	return "<null>";
+}
+
+static void ast_pretty_print(ast_node *p, size_t indent);
+
+static void ast_pretty_print(ast_node *p, size_t indent)
+{
+	if(p == NULL) {
+		fprintf(stdout, "ast_pretty_print p == NULL\n");
+		return;
+	}
+
+	switch(p->type) {
+		case AST_NODE_TYPE_NUMBER:
+			printf("(int %ld)", p->u1.number_value);
+		break;
+		case AST_NODE_TYPE_DOUBLE:
+			printf("(double %.*G)", DBL_DIG, p->u1.double_value);	
+		break;
+		case AST_NODE_TYPE_STRING:
+			printf("(string '%s')", p->u1.string_value.value);
+		break;
+		case AST_NODE_TYPE_ID:
+			printf("(id %s)", p->u1.id_node.name);
+		break;
+		case AST_NODE_TYPE_STATEMENT_LIST: {
+			INDENT_LOOP(indent);
+			size_t i;
+			for(i = 0; i < p->u1.statements_node.count; i++) {
+					ast_pretty_print(p->u1.statements_node.statement_list[i], indent);
+					if(!indent) {
+						printf("\n");
+					}
+			}		
+		} break;
+		case AST_NODE_TYPE_BIN_OP:
+			printf("(%s ", ast_binary_op_string(p->u1.binary_node));
+			ast_pretty_print(p->u1.binary_node.left, indent);
+			printf(" ");
+			ast_pretty_print(p->u1.binary_node.right, indent);
+			printf(")");
+		break;
+		case AST_NODE_TYPE_IF:
+			printf("AST_NODE_TYPE_IF\n");
+		break;
+		case AST_NODE_TYPE_WHILE:
+			printf("AST_NODE_TYPE_WHILE\n");
+		break;
+		case AST_NODE_TYPE_FUNC_DECL:
+			printf("AST_NODE_TYPE_FUNC_DECL\n");
+		break;
+		case AST_NODE_TYPE_CALL: {
+			printf("(call\n");
+			indent++;
+			INDENT_LOOP(indent);
+			ast_node_call call_node = p->u1.call_node;
+			ast_pretty_print(call_node.id, indent);
+			ast_node *args = call_node.arguments;
+			ast_pretty_print(args, indent);
+			/*
+			if(args->u1.statements_node.count) {
+				printf("\n");
+				INDENT_LOOP(indent);
+				size_t i;
+				for(i = 0; i < args->u1.statements_node.count; i++) {
+					ast_pretty_print(args->u1.statements_node.statement_list[i], indent);
+				}
+			}*/
+			--indent;
+			printf(")");
+		}
+		break;
+		case AST_NODE_TYPE_RET:
+			printf("AST_NODE_TYPE_RET\n");
+		break;
+		case AST_NODE_TYPE_PRINT:
+			printf("AST_NODE_TYPE_PRINT\n");
+		break;
+	}
+}
+
 int main(int argc, char** argv)
 {
 	if(argc < 2) {
@@ -89,7 +216,10 @@ int main(int argc, char** argv)
 
 	free(text);
 
+	ast_pretty_print(program, 0);
+
 	ast_compile(argv[1], program);
+	//printf("%d\n", program->type);
 
 	return 0;
 }

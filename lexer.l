@@ -49,6 +49,7 @@ static void update_loc(YYLTYPE *loc, char* text)
 %option bison-bridge
 %option bison-locations
 
+D       [0-9]
 NUM 		[0-9]+
 WHITE_SPACE	[ \r\n\t]*
 L		[a-zA-Z_]
@@ -56,6 +57,9 @@ A		[a-zA-Z_0-9]
 
 %%
 
+"if"            { return T_IF;                }
+"else"          { return T_ELSE;              }
+"!="            { return T_NOT_EQUAL;         }
 "=="            { return T_CMP;               }
 {WHITE_SPACE}	  { /* Skipping Blanks Today */ }
 {L}{A}*         {
@@ -65,6 +69,7 @@ A		[a-zA-Z_0-9]
 	return T_ID;
 }
 {NUM}		        { yylval->number = strtol(yytext, NULL, 10); return T_NUM; }
+{D}*"."{D}+     { yylval->dval = strtod(yytext, NULL); return T_DOUBLE;    }
 
 L?\"(\\.|[^\\"])*\"	{ 
 	size_t len = strlen(yytext);

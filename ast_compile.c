@@ -22,9 +22,11 @@
 #include "ast.h"
 #include "stack.h"
 #include "globals.h"
+#include "object_api.h"
 
 #define C_USER_FUNC (1 << 0)
 #define C_EXT_FUNC  (1 << 1)
+#define C_VALUE_CONST (1 << 2)
 
 typedef void(*como_ext_func)(Object*, Object**);
 
@@ -75,9 +77,6 @@ static void compiler_init(void)
 	mapInsert(cg->symbol_table, "var_dump", var_dump);
 	objectDestroy(var_dump);
 
-	//como_stack_push_ex(&cg->global_call_stack, call_info_create(
-//		id, fcall_lineno, fcall_colno
-//	));
 }
 
 static compiler_context* cg_context_create()
@@ -192,6 +191,9 @@ static Object* ex(ast_node* p)
 		break;
 		case AST_NODE_TYPE_NUMBER:
 			return newLong(p->u1.number_value);
+		break;
+		case AST_NODE_TYPE_DOUBLE:
+			return newDouble(p->u1.double_value);
 		break;
 		case AST_NODE_TYPE_ID: {
 			Object* value;
@@ -420,6 +422,44 @@ static Object* ex(ast_node* p)
 					printf("%s(): invalid binary op(%d)\n", __func__, p->u1.binary_node.type);
 					exit(1);
 				break;
+				case AST_BINARY_OP_NOT_EQUAL: {
+					Object* left = ex(p->u1.binary_node.left);
+					Object* right = ex(p->u1.binary_node.right);
+
+					if(!left || !right) {
+						printf("ex: binary_op_not_equal: null\n");
+						return NULL;
+					} else {
+						int equal = objectValueCompare(left, right);
+						if(!equal) {
+							return newLong(1);
+						} else {
+							return newLong(0);
+						}
+					}
+				} break;
+				case AST_BINARY_OP_LESS_THAN: {
+					Object* left = ex(p->u1.binary_node.left);
+					Object* right = ex(p->u1.binary_node.right);
+					if(!left || !right) {
+						printf("ex: binary_op_less_than: null\n");
+						return NULL;
+					} else {
+						int sametype = object_value_is_less_than(left, right);
+						return newLong((long)sametype);
+					}
+				} break;
+				case AST_BINARY_OP_GREATER_THAN: {
+					Object* left = ex(p->u1.binary_node.left);
+					Object* right = ex(p->u1.binary_node.right);
+					if(!left || !right) {
+						printf("ex: binary_op_greater_than: null\n");
+						return NULL;
+					} else {
+						int sametype = object_value_is_greater_than(left, right);
+						return newLong((long)sametype);
+					}
+				} break;
 				case AST_BINARY_OP_DOT: {
 					printf("dot operator not implemented\n");
 					exit(1);				

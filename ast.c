@@ -22,12 +22,19 @@
 #include "ast.h"
 #include "globals.h"
 
-
 ast_node* ast_node_create_number(long value)
 {
 	ast_node* retval = malloc(sizeof(ast_node));
 	retval->type = AST_NODE_TYPE_NUMBER;
 	retval->u1.number_value = value;
+	return retval;
+}
+
+ast_node* ast_node_create_double(double value)
+{
+	ast_node* retval = malloc(sizeof(ast_node));
+	retval->type = AST_NODE_TYPE_DOUBLE;
+	retval->u1.double_value = value;
 	return retval;
 }
 
