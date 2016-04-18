@@ -47,6 +47,7 @@ typedef void* yyscan_t;
 %token '.'
 %token '='
 %token '+'
+%token T_NEW
 %token <number> T_NUM
 %token <dval> T_DOUBLE
 %token <id> T_ID
@@ -55,9 +56,8 @@ typedef void* yyscan_t;
 %type <ast> expression statement expression_statement statement_list
 %type <ast> value primary call accessor optional_arg_list
 %type <ast> argument_list argument
-%type <ast> target assignment_statement
 
-%left '+'
+%left '=' '+'
 
 %%
 
@@ -92,61 +92,46 @@ primary
 call
     : primary '('optional_arg_list ')' {
 		     $$ = ast_node_create_call($1, $3, 
-                @1.first_line, @1.first_column);
+                @1.first_line);
     }
     ;
 
 accessor
     : primary '.' T_ID {
         $$ = ast_node_create_binary_op(AST_BINARY_OP_DOT, $1, 
-                  ast_node_create_id($3, @3.first_line, @3.first_column), 
-                  @1.first_line, @1.first_column);
+                  ast_node_create_id($3, @3.first_line), 
+                  @1.first_line);
              free($3);
     }
     ;
 
 value
-    : T_NUM                       { 
-          $$ = ast_node_create_number($1, @1.first_line, @1.first_column);       
-    }
-    | T_DOUBLE                    { 
-          $$ = ast_node_create_double($1, @1.first_line, @1.first_column);       
-    }
-    | T_ID                        { 
-          $$ = ast_node_create_id($1, @1.first_line, @1.first_column); 
-          free($1);                
-    }
+    : T_NUM                       { $$ = ast_node_create_number($1, @1.first_line);       }
+    | T_DOUBLE                    { $$ = ast_node_create_double($1, @1.first_line);       }
+    | T_ID                        { $$ = ast_node_create_id($1, @1.first_line); free($1);                }
     | T_STR_LIT                   { 
-        $$ = ast_node_create_string_literal($1, @1.first_line, @1.first_column); 
+        $$ = ast_node_create_string_literal($1, @1.first_line); 
         free($1); 
     }
     ;
 
 expression
-    : primary                     { $$ = $1;                               }
+    : value                       { $$ = $1;                               }
+    | T_ID       '=' expression   { 
+        $$ = ast_node_create_binary_op(AST_BINARY_OP_ASSIGN,
+               ast_node_create_id($1, @1.first_line), $3, @1.first_line);
+             free($1);
+    }
+    | accessor { $$ = $1; }
+    | call     { $$ = $1; }
     | expression '+' expression   {
-        $$ = ast_node_create_binary_op(AST_BINARY_OP_ADD, $1, $3, @1.first_line, @1.first_column);
+        $$ = ast_node_create_binary_op(AST_BINARY_OP_ADD, $1, $3, @1.first_line);
     }
     | '(' expression ')' { $$ = $2; }
     ;
 
 statement
     : expression_statement        { $$ = $1;                                }
-    | assignment_statement        { $$ = $1;                                }
-    ;
-
-target
-    : T_ID { $$ = ast_node_create_id($1, @1.first_line, @1.first_column); 
-                  free($1);          
-    }
-    | accessor { $$ = $1; }
-    ;
-
-assignment_statement
-    : target '=' expression ';'     {
-        $$ = ast_node_create_binary_op(AST_BINARY_OP_ASSIGN, $1, $3, 
-                          @1.first_line, @1.first_column);
-    }
     ;
 
 statement_list

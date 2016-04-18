@@ -19,6 +19,7 @@
 #include <float.h>
 #include <string.h>
 #include <easyio.h>
+#include <signal.h>
 #include "ast.h"
 #include "globals.h"
 #include "parser.h"

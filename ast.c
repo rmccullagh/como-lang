@@ -22,20 +22,22 @@
 #include "ast.h"
 #include "globals.h"
 
-ast_node* ast_node_create_number(long value, int lineno)
+ast_node* ast_node_create_number(long value, int lineno, int colno)
 {
 	ast_node* retval = malloc(sizeof(ast_node));
 	retval->type = AST_NODE_TYPE_NUMBER;
 	retval->lineno = lineno;
+	retval->colno = colno;
 	retval->u1.number_value = value;
 	return retval;
 }
 
-ast_node* ast_node_create_double(double value, int lineno)
+ast_node* ast_node_create_double(double value, int lineno, int colno)
 {
 	ast_node* retval = malloc(sizeof(ast_node));
 	retval->type = AST_NODE_TYPE_DOUBLE;
 	retval->lineno = lineno;
+	retval->colno = colno;
 	retval->u1.double_value = value;
 	return retval;
 }
@@ -90,10 +92,11 @@ void ast_node_statement_list_push(ast_node* node, ast_node* value)
 }
 
 ast_node* ast_node_create_binary_op(ast_binary_op_type type, ast_node* left, ast_node* right, 
-		int lineno)
+		int lineno, int colno)
 {
 	ast_node* retval = malloc(sizeof(ast_node));
 	retval->type = AST_NODE_TYPE_BIN_OP;
+	retval->colno = colno;
 	retval->lineno = lineno;
 	retval->u1.binary_node.type = type;
 	retval->u1.binary_node.left = left;
@@ -102,10 +105,11 @@ ast_node* ast_node_create_binary_op(ast_binary_op_type type, ast_node* left, ast
 	return retval;
 }
 
-ast_node* ast_node_create_id(const char* name, int lineno)
+ast_node* ast_node_create_id(const char* name, int lineno, int colno)
 {
 	ast_node* retval = malloc(sizeof(ast_node));
 	retval->type = AST_NODE_TYPE_ID;
+	retval->colno = colno;
 	retval->lineno = lineno;
 	size_t len = strlen(name);
 	retval->u1.id_node.length = len;
@@ -114,11 +118,12 @@ ast_node* ast_node_create_id(const char* name, int lineno)
 	return retval;
 }
 
-ast_node* ast_node_create_string_literal(const char* str, int lineno)
+ast_node* ast_node_create_string_literal(const char* str, int lineno, int colno)
 {
 	ast_node* retval = malloc(sizeof(ast_node));
 	retval->type = AST_NODE_TYPE_STRING;
 	retval->lineno = lineno;
+	retval->colno = colno;
 	retval->u1.string_value.length = strlen(str);
 	retval->u1.string_value.value = malloc(retval->u1.string_value.length + 1);
 	memcpy(retval->u1.string_value.value, str, retval->u1.string_value.length);
@@ -126,13 +131,15 @@ ast_node* ast_node_create_string_literal(const char* str, int lineno)
 	return retval;
 }
 
-ast_node *ast_node_create_call(ast_node *expression, ast_node *args, int lineno)
+ast_node *ast_node_create_call(ast_node *expression, ast_node *args, int lineno, int colno)
 {
 	ast_node* retval = malloc(sizeof(ast_node));
 	retval->type = AST_NODE_TYPE_CALL;
 	retval->lineno = lineno;
+	retval->colno = colno;
 	retval->u1.call_node.expression = expression;
 	retval->u1.call_node.arguments = args;
 	return retval;
 }
+
 

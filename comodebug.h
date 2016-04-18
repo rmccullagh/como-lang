@@ -12,17 +12,20 @@ static void debug(const char* format, ...)
 	va_start (args, format);
 	vfprintf (stderr, format, args);
 	va_end (args);
+  fflush(stderr);
 #endif
 }
 
 static void como_error_noreturn_ex(const char *f,
 		const char *fn, int ln, const char* format, ...)
 {
+	fputc('\n', stderr);
 	fprintf(stderr, "%s:%s:%d: fatal: ", f, fn, ln);
 	va_list args;
 	va_start (args, format);
 	vfprintf (stderr, format, args);
 	va_end (args);
+	fflush(stderr);	
 	exit(1);
 }
 

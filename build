@@ -1,0 +1,2 @@
+#!/bin/sh
+cc -Wall -Wextra -lobject comolongobject.c typetest.c -o main

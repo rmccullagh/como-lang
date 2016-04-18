@@ -1,7 +1,3 @@
-len = "ryan".toUpperCase().length().toString();
-
-"".toUpperCase = "";
 
 
-
-
+len = "ryan".toUpperCase().length.toString();

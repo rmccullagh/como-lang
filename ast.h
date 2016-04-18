@@ -62,9 +62,11 @@ typedef struct {
 	ast_node* arguments;
 } ast_node_call;
 
+
 struct ast_node {
 	ast_node_type	type;
 	int lineno;
+	int colno;
 	union {
 		long number_value;
 		double double_value;
@@ -79,17 +81,16 @@ struct ast_node {
 	} u1;
 };
 
-extern ast_node* ast_node_create_number(long, int);
-extern ast_node* ast_node_create_double(double, int);
+extern ast_node* ast_node_create_number(long, int, int);
+extern ast_node* ast_node_create_double(double, int, int);
 extern ast_node* ast_node_create_statement_list(size_t, ...);
 extern void ast_node_statement_list_push(ast_node *, ast_node *);
 extern ast_node *ast_node_create_binary_op(ast_binary_op_type, 
-		ast_node *, ast_node *, int);
+		ast_node *, ast_node *, int, int);
 
-extern ast_node* ast_node_create_id(const char *, int);
-extern ast_node* ast_node_create_string_literal(const char *, int);
-extern ast_node *ast_node_create_call(ast_node *, ast_node *, int);
-
+extern ast_node* ast_node_create_id(const char *, int, int);
+extern ast_node* ast_node_create_string_literal(const char *, int, int);
+extern ast_node *ast_node_create_call(ast_node *, ast_node *, int, int);
 /*
  * These functions are defined in other files outside ast.c
  */

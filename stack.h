@@ -15,8 +15,8 @@
 *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef STACK_H
-#define STACK_H
+#ifndef COMO_STACK_H
+#define COMO_STACK_H
 
 typedef struct como_stack {
 	void* value;
