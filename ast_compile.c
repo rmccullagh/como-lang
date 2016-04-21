@@ -61,10 +61,6 @@ static void compiler_init(void)
 	O_MRKD(fobj) = COMO_TYPE_IS_OBJECT;
 	mapInsert(cg->symbol_table, "typeof", fobj);
 
-	como_object *error_object = como_type_new_error_object();
-	Object *errorfn = newFunction((void *)error_object);
-	O_MRKD(errorfn) = COMO_TYPE_IS_OBJECT|COMO_TYPE_IS_CLASS;
-	mapInsert(cg->symbol_table, "Error", errorfn);
 }
 
 static como_object *ex(ast_node *);
@@ -101,19 +97,17 @@ static como_object *como_do_call(ast_node *p)
 	if(!callablevar) {
 		como_error_noreturn("ex returned NULL\n");
 	}
-
-	if(callablevar->flags & COMO_TYPE_IS_CLASS) {
-		como_object *instance = callablevar->type->new();	
-	}
-
+	
 	if(!(callablevar->flags & COMO_TYPE_IS_CALLABLE)) {
 		como_error_noreturn("value of type '%s' is not callable (%d:%d)\n", 
 				callablevar->type->name, p->u1.call_node.expression->lineno, 
 				p->u1.call_node.expression->colno); 
 	}
 
+	/*
 	DEBUG_TYPE(callablevar->value);
-	
+	*/
+
 	Object *fimpl = callablevar->value;
 
 	if(O_TYPE(fimpl) != IS_FUNCTION) {
@@ -192,7 +186,7 @@ static como_object* ex(ast_node* p)
 				case AST_BINARY_OP_DOT: {
 					/* this */
 					como_object *parent = ex(p->u1.binary_node.left);
-					printf("%s\n", parent->type->name);
+					printf("Type of the primary in the dot operation:%s\n", parent->type->name);
 					if(O_TYPE(parent->value) == IS_NULL) {
 							como_error_noreturn("property is not defined (%d:%d)\n",
 									p->u1.binary_node.left->lineno, p->u1.binary_node.left->colno);

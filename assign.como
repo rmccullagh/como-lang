@@ -1,5 +1,1 @@
-err = Error();
-
-
-
-
+name = (1).name;

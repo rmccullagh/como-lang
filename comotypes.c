@@ -5,45 +5,6 @@
 
 #include "comotypes.h"
 
-static como_object *como_type_error_object_ctor(como_object *self, Object *args)
-{
-	como_object *o = malloc(sizeof(como_object));
-	o->self = o;
-	o->value = newMap(8);
-	o->flags = COMO_TYPE_IS_OBJECT|COMO_TYPE_IS_CLASS;
-	o->type = malloc(sizeof(como_type));
-	o->type->name = "Error";
-	o->type->properties = newMap(2);
-	o->type->flags = 0;
-
-	Object *error_ctor = newFunction(como_type_error_object_ctor);
-	O_MRKD(error_ctor) = COMO_TYPE_IS_FUNC;
-
-	como_object *container = como_type_new_function_object(o,
-														error_ctor);
-
-	Object *errorContainer = newFunction((void *)container);
-	O_MRKD(errorContainer) = COMO_TYPE_IS_OBJECT;
-	mapInsertEx(o->value, "constructor", errorContainer);
-	mapInsertEx(o->value, "columnNumber", newLong(0));
-	mapInsertEx(o->value, "fileName", newString(""));
-	mapInsertEx(o->value, "lineNumber", newLong(0));
-	mapInsertEx(o->value, "message", newString(""));
-	mapInsertEx(o->value, "name", newString("Error"));
-	mapInsertEx(o->value, "stack", newString(""));
-	
-	return o;
-	assert(args);
-	return o;
-}
-
-como_type como_error_type = {
-	0,
-	"Error",
-  como_type_error_object_ctor,
-  NULL
-};
-
 static como_object *como_type_string_length(como_object *self, Object *args)
 {
 	return como_type_new_int_object(O_SVAL(self->value)->length);

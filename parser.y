@@ -120,6 +120,9 @@ value
         $$ = ast_node_create_string_literal($1, @1.first_line, @1.first_column); 
         free($1); 
     }
+    |
+    '(' value ')'                 { $$ = $2;                     
+    }
     ;
 
 expression
@@ -127,7 +130,6 @@ expression
     | expression '+' expression   {
         $$ = ast_node_create_binary_op(AST_BINARY_OP_ADD, $1, $3, @1.first_line, @1.first_column);
     }
-    | '(' expression ')' { $$ = $2; }
     ;
 
 statement

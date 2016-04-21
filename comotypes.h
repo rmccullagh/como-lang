@@ -16,18 +16,9 @@ typedef como_object *(*como_type_method)(como_object *, Object *);
 typedef como_object *(*como_constructor_func)(como_object *, como_object *);
 typedef como_object *(*comotypenewfn)(como_object *, como_object *);
 
-typedef struct _comotypeobject {
-	const char    *name;
-	ssize_t        size;
-	unsigned long  flags;
-  comotypenewfn  newfunc;
-  Object        *properties; 
-} comotypeobject;
-
 typedef struct como_type {
 	unsigned int flags;
 	const char *name;
-	como_constructor_func ctor;
 	Object *properties;
 } como_type;
 
