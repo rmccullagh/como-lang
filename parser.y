@@ -120,9 +120,6 @@ value
         $$ = ast_node_create_string_literal($1, @1.first_line, @1.first_column); 
         free($1); 
     }
-    |
-    '(' value ')'                 { $$ = $2;                     
-    }
     ;
 
 expression
@@ -130,6 +127,7 @@ expression
     | expression '+' expression   {
         $$ = ast_node_create_binary_op(AST_BINARY_OP_ADD, $1, $3, @1.first_line, @1.first_column);
     }
+    | '(' expression ')' { $$ = $2; }
     ;
 
 statement
@@ -148,11 +146,11 @@ assignment_statement
     : target '=' expression ';'     {
         $$ = ast_node_create_binary_op(AST_BINARY_OP_ASSIGN, $1, $3, 
                           @1.first_line, @1.first_column);
-    }
-    ;
+    } 
+   	;
 
 statement_list
-    : %empty                      { $$ = ast_node_create_statement_list(0); } 
+     : %empty                      { $$ = ast_node_create_statement_list(0); } 
     | statement_list statement    {
         ast_node_statement_list_push($1, $2);
         $$ = $1;

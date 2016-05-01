@@ -219,7 +219,7 @@ static como_object* ex(ast_node* p)
 						long sum = O_LVAL(left->value) + O_LVAL(right->value);
 						return como_type_new_int_object(sum);	
 					} else {
-						como_error_noreturn("AST_BINARY_OP_ADD: only workds on longs\n");
+						como_error_noreturn("AST_BINARY_OP_ADD: only works on longs\n");
 					}
 				}
 				break;
