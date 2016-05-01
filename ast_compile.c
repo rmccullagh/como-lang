@@ -43,6 +43,41 @@ como_builtin_typeof(como_object *self, Object *args)
 	return como_type_init_string(self->type->name);		
 }
 
+static como_object *
+como_builtin_print(como_object *self, Object *args)
+{
+	if(self == NULL) {
+		como_error_noreturn("self is NULL\n");
+	}
+	
+	size_t i;
+
+	Array *_args = O_AVAL(args);
+
+	for(i = 0; i < _args->size; i++) {
+		Object *value = _args->table[i];
+		OBJECT_DUMP(value);
+	}
+
+	return como_type_new_int_object(1);
+}
+
+static void setup_builtin(Object *symtable, const char *name, void *impl)
+{
+	Object *builtin_typeof_cfunc = newFunction(impl);
+	O_MRKD(builtin_typeof_cfunc) = COMO_TYPE_IS_FUNC;
+
+	como_object *container = como_type_new_function_object(NULL, 
+			builtin_typeof_cfunc);
+
+	container->self = container;
+	Object *fobj = newFunction((void *)container);
+	O_MRKD(fobj) = COMO_TYPE_IS_OBJECT;
+	
+	mapInsert(symtable, name, fobj);
+
+}
+
 static void compiler_init(void)
 {
 	cg = malloc(sizeof(compiler_context));
@@ -54,12 +89,12 @@ static void compiler_init(void)
 
 	como_object *container = como_type_new_function_object(NULL, 
 			builtin_typeof_cfunc);
-
 	container->self = container;
-
 	Object *fobj = newFunction((void *)container);
 	O_MRKD(fobj) = COMO_TYPE_IS_OBJECT;
 	mapInsert(cg->symbol_table, "typeof", fobj);
+
+	setup_builtin(cg->symbol_table, "print", como_builtin_print);
 
 }
 
@@ -80,7 +115,6 @@ static Object *validate_call_args(ast_node *n)
 			como_error_noreturn("argument %zu cannot be a statement list\n", i);
 		}
 		como_object *evaluated = ex(stmt);
-		fprintf(stderr, "argument[%zu]: %s\n", i, evaluated->type->name);
 		arrayPush(arglist, evaluated->value);
 	}
 	return arglist;
@@ -103,10 +137,6 @@ static como_object *como_do_call(ast_node *p)
 				callablevar->type->name, p->u1.call_node.expression->lineno, 
 				p->u1.call_node.expression->colno); 
 	}
-
-	/*
-	DEBUG_TYPE(callablevar->value);
-	*/
 
 	Object *fimpl = callablevar->value;
 
@@ -186,7 +216,7 @@ static como_object* ex(ast_node* p)
 				case AST_BINARY_OP_DOT: {
 					/* this */
 					como_object *parent = ex(p->u1.binary_node.left);
-					printf("Type of the primary in the dot operation:%s\n", parent->type->name);
+					como_debug("Type of the primary in the dot operation: %s\n", parent->type->name);
 					if(O_TYPE(parent->value) == IS_NULL) {
 							como_error_noreturn("property is not defined (%d:%d)\n",
 									p->u1.binary_node.left->lineno, p->u1.binary_node.left->colno);
@@ -242,6 +272,16 @@ static como_object* ex(ast_node* p)
 									id, p->u1.binary_node.left->u1.binary_node.left->lineno);
 						}
 						const char *name = p->u1.binary_node.left->u1.binary_node.right->u1.id_node.name;
+
+						Object *v = mapSearch(primary->type->properties, name);
+						if(v != NULL) {
+							if(O_TYPE(v) == IS_FUNCTION) {
+								if(O_MRKD(v) & COMO_TYPE_IS_SEALED) {
+									como_error_noreturn("property '%s' is read-only\n", name);	
+								}
+							}
+						}
+
 						como_object *right = ex(p->u1.binary_node.right);
 						Object *value = newFunction((void *)right);
 						O_MRKD(value) = COMO_TYPE_IS_OBJECT;
@@ -252,11 +292,10 @@ static como_object* ex(ast_node* p)
 			}	
 		} break;
 	}
-
 	return NULL;
 }
 
-void ast_compile(const char* filename, ast_node* program)
+void ast_compile(const char* filename, ast_node* program, int show_sym)
 {
 	if(!program) {
 		printf("%s(): unexpected empty node\n", __func__);
@@ -266,27 +305,29 @@ void ast_compile(const char* filename, ast_node* program)
 	compiler_init();
 
 	(void)ex(program);	
-	
-	Map *symtab = O_MVAL(cg->symbol_table);
-	
-	uint32_t i;
 
-	for(i = 0; i < symtab->capacity; i++) {
-		if(symtab->buckets[i] != NULL) {
-			Bucket *b = symtab->buckets[i];
-			while(b != NULL) {
-				Bucket *next = b->next;
-					printf("%s:", b->key->value);
-					Object *value = b->value;
-					if(O_MRKD(value) & COMO_TYPE_IS_OBJECT) {
-						como_object *ob = (como_object *)O_FVAL(value);
-						if(ob) {
-							fprintf(stdout, "<%p>: ", (void *)ob->value);
-							OBJECT_DUMP(ob->value);
-							fputc('\n', stdout);
+	if(show_sym) {	
+		Map *symtab = O_MVAL(cg->symbol_table);
+		
+		uint32_t i;
+
+		for(i = 0; i < symtab->capacity; i++) {
+			if(symtab->buckets[i] != NULL) {
+				Bucket *b = symtab->buckets[i];
+				while(b != NULL) {
+					Bucket *next = b->next;
+						printf("%s:", b->key->value);
+						Object *value = b->value;
+						if(O_MRKD(value) & COMO_TYPE_IS_OBJECT) {
+							como_object *ob = (como_object *)O_FVAL(value);
+							if(ob) {
+								fprintf(stdout, "<%p>: ", (void *)ob->value);
+								OBJECT_DUMP(ob->value);
+								fputc('\n', stdout);
+							}
 						}
-					}
-				b = next;
+					b = next;
+				}
 			}
 		}
 	}

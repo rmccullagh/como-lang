@@ -148,9 +148,12 @@ static void ast_pretty_print(ast_node *p, size_t indent)
 int main(int argc, char** argv)
 {
 	if(argc < 2) {
-		printf("Usage: ./%s FILE\n", argv[0]);
+		printf("usage: como [options] <file>\n");
+		printf("  --print-ast    Show the Abstract Syntax Tree\n");
+		printf("  --print-sym    Show the global symbol table\n");
 		return 0;
 	}
+	int show_sym = 0;
 
 	char* text = file_get_contents(argv[1]);
 
@@ -167,10 +170,10 @@ int main(int argc, char** argv)
 
 	free(text);
 
-	ast_pretty_print(program, 0);
 
-	ast_compile(argv[1], program);
-	//printf("%d\n", program->type);
+	//ast_pretty_print(program, 0);
+
+	ast_compile(argv[1], program, show_sym);
 
 	return 0;
 }

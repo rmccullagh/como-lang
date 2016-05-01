@@ -96,6 +96,6 @@ extern ast_node *ast_node_create_call(ast_node *, ast_node *, int, int);
  */
 extern void ast_node_free(ast_node* node);
 extern void ast_node_dump_tree(ast_node* node);
-extern void ast_compile(const char* file, ast_node* program);
+extern void ast_compile(const char *, ast_node *, int);
 
 #endif

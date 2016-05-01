@@ -51,7 +51,7 @@ como_object *como_type_init_string(const char *sval)
 															length);
 
 	Object *lengthContainer = newFunction((void *)container);
-	O_MRKD(lengthContainer) = COMO_TYPE_IS_OBJECT;
+	O_MRKD(lengthContainer) = COMO_TYPE_IS_OBJECT|COMO_TYPE_IS_SEALED;
 	mapInsert(o->type->properties, "length", lengthContainer);
 
 	Object *toUpperCase = newFunction(como_type_string_touppercase);
