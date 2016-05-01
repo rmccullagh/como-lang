@@ -29,7 +29,7 @@ typedef enum {
 	AST_NODE_TYPE_NUMBER, AST_NODE_TYPE_STRING,
 	AST_NODE_TYPE_ID, AST_NODE_TYPE_DOUBLE,
 	AST_NODE_TYPE_STATEMENT_LIST, AST_NODE_TYPE_BIN_OP,
-	AST_NODE_TYPE_CALL,
+	AST_NODE_TYPE_CALL, AST_NODE_TYPE_FUNC_DEFN,
 } ast_node_type;
 
 typedef enum {
@@ -39,7 +39,13 @@ typedef enum {
 typedef struct ast_node ast_node;
 
 typedef struct {
-	char* name;
+	ast_node *name;
+	ast_node *parameters;
+	ast_node *body;
+} ast_node_function_defn;
+
+typedef struct {
+	char *name;
 	size_t length;
 } ast_node_id;
 
@@ -48,18 +54,18 @@ typedef struct ast_node_statements ast_node_statements;
 struct ast_node_statements {
 	size_t	   count;
 	size_t	   capacity;
-	ast_node** statement_list;
+	ast_node  **statement_list;
 };
 
 typedef struct {
 	ast_binary_op_type type;
-	ast_node* left;
-	ast_node* right;
+	ast_node *left;
+	ast_node *right;
 } ast_node_binary;
 
 typedef struct {
-	ast_node* expression;
-	ast_node* arguments;
+	ast_node *expression;
+	ast_node *arguments;
 } ast_node_call;
 
 
@@ -71,31 +77,33 @@ struct ast_node {
 		long number_value;
 		double double_value;
 		struct {
-			char* value;
+			char  *value;
 			size_t length;
 		} string_value;
-		ast_node_id		      id_node;
-		ast_node_statements	statements_node;
-		ast_node_binary		  binary_node;
-		ast_node_call       call_node;
+		ast_node_id		         id_node;
+		ast_node_statements	   statements_node;
+		ast_node_binary		     binary_node;
+		ast_node_call          call_node;
+		ast_node_function_defn function_defn_node;
 	} u1;
 };
 
-extern ast_node* ast_node_create_number(long, int, int);
-extern ast_node* ast_node_create_double(double, int, int);
-extern ast_node* ast_node_create_statement_list(size_t, ...);
+extern ast_node *ast_node_create_function_defn(ast_node *, ast_node *, ast_node *, int, int);
+extern ast_node *ast_node_create_number(long, int, int);
+extern ast_node *ast_node_create_double(double, int, int);
+extern ast_node *ast_node_create_statement_list(size_t, ...);
 extern void ast_node_statement_list_push(ast_node *, ast_node *);
 extern ast_node *ast_node_create_binary_op(ast_binary_op_type, 
 		ast_node *, ast_node *, int, int);
 
-extern ast_node* ast_node_create_id(const char *, int, int);
-extern ast_node* ast_node_create_string_literal(const char *, int, int);
+extern ast_node *ast_node_create_id(const char *, int, int);
+extern ast_node *ast_node_create_string_literal(const char *, int, int);
 extern ast_node *ast_node_create_call(ast_node *, ast_node *, int, int);
 /*
  * These functions are defined in other files outside ast.c
  */
-extern void ast_node_free(ast_node* node);
-extern void ast_node_dump_tree(ast_node* node);
+extern void ast_node_free(ast_node *);
+extern void ast_node_dump_tree(ast_node *);
 extern void ast_compile(const char *, ast_node *, int);
 
 #endif

@@ -1,4 +1,6 @@
 name = "Ryan";
 name.name = "name";
 name.length = 1;
-print(name.length());
+print(name.fuck);
+print(name.name);
+print(name.length);

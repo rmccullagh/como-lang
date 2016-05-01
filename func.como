@@ -1,0 +1,6 @@
+func Object(name, self)
+{
+	name.toString();
+}
+
+obj = Object(1, 1);

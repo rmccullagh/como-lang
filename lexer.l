@@ -58,6 +58,7 @@ A		[a-zA-Z_0-9]
 %%
 
 {WHITE_SPACE}	  { /* Skipping Blanks Today */ }
+"func"          { return T_FUNC;              }
 {L}{A}*         {
 	size_t len = strlen(yytext);
 	yylval->id = malloc(len + 1);

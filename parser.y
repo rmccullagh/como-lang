@@ -44,6 +44,7 @@ typedef void* yyscan_t;
 	ast_node* ast;
 }
 
+%token T_FUNC
 %token '.'
 %token '='
 %token '+'
@@ -56,6 +57,8 @@ typedef void* yyscan_t;
 %type <ast> value primary call accessor optional_arg_list
 %type <ast> argument_list argument
 %type <ast> target assignment_statement
+%type <ast> function_defn_statement optional_function_name optional_parameter_list
+%type <ast> parameter_list parameter
 
 %left '+'
 
@@ -133,6 +136,7 @@ expression
 statement
     : expression_statement        { $$ = $1;                                }
     | assignment_statement        { $$ = $1;                                }
+    | function_defn_statement     { $$ = $1;                                }
     ;
 
 target
@@ -159,6 +163,34 @@ statement_list
 
 expression_statement
     : expression ';'              { $$ = $1;                                }
+    ;
+
+optional_function_name
+    : %empty                       { $$ = ast_node_create_id("<anonymous>", 0, 0); }
+    | T_ID                         {
+			$$ = ast_node_create_id($1, @1.first_line, @1.first_column);
+      free($1);
+    }
+    ;
+
+optional_parameter_list
+    : %empty { $$ = ast_node_create_statement_list(0); }
+    | parameter_list { $$ = $1; }
+    ;
+
+parameter_list
+    : parameter { $$ = ast_node_create_statement_list(1, $1); }
+    | parameter_list ',' parameter { ast_node_statement_list_push($1, $3); $$ = $1; }
+    ;
+
+parameter
+    : T_ID { $$ = ast_node_create_id($1, @1.first_line, @1.first_column); free($1); }
+    ;
+
+function_defn_statement
+    : T_FUNC optional_function_name '(' optional_parameter_list ')' '{' statement_list '}' {
+			$$ = ast_node_create_function_defn($2, $4, $7, @2.first_line, @2.first_column);
+    }
     ;
 
 %%

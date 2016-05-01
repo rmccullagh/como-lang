@@ -29,19 +29,9 @@
 
 typedef struct compiler_context {
 	Object* symbol_table;
-	como_object *error_object;	
 } compiler_context;
 
 static compiler_context* cg;
-
-static como_object *
-como_builtin_typeof(como_object *self, Object *args)
-{
-	if(self == NULL) {
-		como_error_noreturn("self is NULL\n");
-	}
-	return como_type_init_string(self->type->name);		
-}
 
 static como_object *
 como_builtin_print(como_object *self, Object *args)
@@ -64,14 +54,12 @@ como_builtin_print(como_object *self, Object *args)
 
 static void setup_builtin(Object *symtable, const char *name, void *impl)
 {
-	Object *builtin_typeof_cfunc = newFunction(impl);
-	O_MRKD(builtin_typeof_cfunc) = COMO_TYPE_IS_FUNC;
-
-	como_object *container = como_type_new_function_object(NULL, 
-			builtin_typeof_cfunc);
-
+	Object *builtin_optr = newFunction(impl);
+	como_object *container = como_type_new_function_object(NULL, builtin_optr);
 	container->self = container;
-	Object *fobj = newFunction((void *)container);
+	container->flags |= COMO_TYPE_IS_SEALED;
+	
+	Object *fobj = newPointer((void *)container);
 	O_MRKD(fobj) = COMO_TYPE_IS_OBJECT;
 	
 	mapInsert(symtable, name, fobj);
@@ -82,18 +70,6 @@ static void compiler_init(void)
 {
 	cg = malloc(sizeof(compiler_context));
 	cg->symbol_table = newMap(2);
-	cg->error_object = NULL;
-
-	Object *builtin_typeof_cfunc = newFunction(como_builtin_typeof);
-	O_MRKD(builtin_typeof_cfunc) = COMO_TYPE_IS_FUNC;
-
-	como_object *container = como_type_new_function_object(NULL, 
-			builtin_typeof_cfunc);
-	container->self = container;
-	Object *fobj = newFunction((void *)container);
-	O_MRKD(fobj) = COMO_TYPE_IS_OBJECT;
-	mapInsert(cg->symbol_table, "typeof", fobj);
-
 	setup_builtin(cg->symbol_table, "print", como_builtin_print);
 
 }
@@ -144,10 +120,6 @@ static como_object *como_do_call(ast_node *p)
 		como_error_noreturn("object container type was not IS_FUNCTION\n");
 	}
 
-	if(!(O_MRKD(fimpl) & COMO_TYPE_IS_FUNC)) {
-		como_error_noreturn("object implicit type is not COMO_TYPE_IS_FUNC\n");	
-	}
-
 	Object *call_args = validate_call_args(p->u1.call_node.arguments);
 
 	como_type_method method = (como_type_method)O_FVAL(fimpl);
@@ -169,7 +141,7 @@ static como_object* ex(ast_node* p)
 			como_error_noreturn("invalid ast.node_type\n");
 		break;
 		case AST_NODE_TYPE_STRING:
-			return como_type_init_string(p->u1.string_value.value);
+			return como_type_new_string_object(p->u1.string_value.value);
 		break;
 		case AST_NODE_TYPE_NUMBER:
 			return como_type_new_int_object(p->u1.number_value);
@@ -188,12 +160,12 @@ static como_object* ex(ast_node* p)
 				como_error_noreturn("'%s' is not defined (%d:%d)\n", 
 						p->u1.id_node.name, p->lineno, p->colno); 
 			} else {
-				if(O_TYPE(value) != IS_FUNCTION) {
+				if(O_TYPE(value) != IS_POINTER) {
 					como_error_noreturn("O_TYPE: value of '%s' is not IS_FUNCTION\n",
 							p->u1.id_node.name);
 				}
 				if(O_MRKD(value) & COMO_TYPE_IS_OBJECT) {
-					return (como_object *)O_FVAL(value);
+					return (como_object *)O_PTVAL(value);
 				} else {
 					como_error_noreturn("O_MRKD(value) is not & COMO_TYPE_IS_OBJECT\n");
 				}
@@ -231,12 +203,12 @@ static como_object* ex(ast_node* p)
 					if(keyvalue == NULL) {
 						return como_type_new_undefined_object();
 					}
-					if(O_TYPE(keyvalue) != IS_FUNCTION) {
+					if(O_TYPE(keyvalue) != IS_POINTER) {
 						como_error_noreturn("'%s' is not a IS_FUNCTION (%d)\n", 
 								key, p->u1.binary_node.right->lineno);
 					}
 					if(O_MRKD(keyvalue) & COMO_TYPE_IS_OBJECT) {
-						return (como_object *)O_FVAL(keyvalue);
+						return (como_object *)O_PTVAL(keyvalue);
 					} else {
 						como_error_noreturn("identifier '%s' type is not implicit COMO_TYPE_IS_OBJECT (%d)\n", 
 								key, p->u1.binary_node.right->lineno);
@@ -256,8 +228,20 @@ static como_object* ex(ast_node* p)
 				case AST_BINARY_OP_ASSIGN: {
 					if(p->u1.binary_node.left->type == AST_NODE_TYPE_ID) {
 						const char *left = p->u1.binary_node.left->u1.id_node.name;
+						Object *v = mapSearch(cg->symbol_table, left);
+						if(v != NULL) {
+							if(O_TYPE(v) == IS_POINTER) {
+								if(O_MRKD(v) & COMO_TYPE_IS_OBJECT) {
+									como_object *ov = (como_object *)O_PTVAL(v);
+									if(ov->flags & COMO_TYPE_IS_SEALED) {
+										como_error_noreturn("can't assign to read-only identifier '%s' (%d:%d)\n", 
+												left, p->lineno, p->colno);	
+									}
+								}
+							}
+						}
 						como_object *right = ex(p->u1.binary_node.right);
-						Object *value = newFunction((void *)right);
+						Object *value = newPointer((void *)right);
 						O_MRKD(value) = COMO_TYPE_IS_OBJECT;
 						mapInsertEx(cg->symbol_table, left, value);
 						return right;
@@ -272,18 +256,20 @@ static como_object* ex(ast_node* p)
 									id, p->u1.binary_node.left->u1.binary_node.left->lineno);
 						}
 						const char *name = p->u1.binary_node.left->u1.binary_node.right->u1.id_node.name;
-
 						Object *v = mapSearch(primary->type->properties, name);
 						if(v != NULL) {
-							if(O_TYPE(v) == IS_FUNCTION) {
-								if(O_MRKD(v) & COMO_TYPE_IS_SEALED) {
-									como_error_noreturn("property '%s' is read-only\n", name);	
+							if(O_TYPE(v) == IS_POINTER) {
+								if(O_MRKD(v) & COMO_TYPE_IS_OBJECT) {
+									como_object *ov = (como_object *)O_PTVAL(v);
+									if(ov->flags & COMO_TYPE_IS_SEALED) {
+										como_error_noreturn("property '%s' is read-only\n", name);	
+									}
 								}
 							}
 						}
 
 						como_object *right = ex(p->u1.binary_node.right);
-						Object *value = newFunction((void *)right);
+						Object *value = newPointer((void *)right);
 						O_MRKD(value) = COMO_TYPE_IS_OBJECT;
 						mapInsert(primary->type->properties, name, value);
 						return right;
@@ -319,7 +305,7 @@ void ast_compile(const char* filename, ast_node* program, int show_sym)
 						printf("%s:", b->key->value);
 						Object *value = b->value;
 						if(O_MRKD(value) & COMO_TYPE_IS_OBJECT) {
-							como_object *ob = (como_object *)O_FVAL(value);
+							como_object *ob = (como_object *)O_PTVAL(value);
 							if(ob) {
 								fprintf(stdout, "<%p>: ", (void *)ob->value);
 								OBJECT_DUMP(ob->value);

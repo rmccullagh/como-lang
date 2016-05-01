@@ -142,6 +142,16 @@ static void ast_pretty_print(ast_node *p, size_t indent)
 			indent = indent > 0 ? indent- 1 : 0;
 			printf(")");
 		break;
+		case AST_NODE_TYPE_FUNC_DEFN: {
+			printf("(function %s", p->u1.function_defn_node.name->u1.id_node.name);
+			indent = indent + 1;
+			ast_pretty_print(p->u1.function_defn_node.parameters, indent);
+			printf("\n");
+			ast_pretty_print(p->u1.function_defn_node.body, indent);
+			printf(")");
+			indent = indent > 0 ? indent- 1 : 0;
+		}
+		break;
 	}
 }
 
@@ -171,9 +181,9 @@ int main(int argc, char** argv)
 	free(text);
 
 
-	//ast_pretty_print(program, 0);
+	ast_pretty_print(program, 0);
 
-	ast_compile(argv[1], program, show_sym);
+	//ast_compile(argv[1], program, show_sym);
 
 	return 0;
 }

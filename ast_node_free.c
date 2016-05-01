@@ -9,6 +9,12 @@ void ast_node_free(ast_node* p)
 	if(!p)
 		return;
 	switch(p->type) {
+		case AST_NODE_TYPE_FUNC_DEFN:
+			ast_node_free(p->u1.function_defn_node.name);
+			ast_node_free(p->u1.function_defn_node.parameters);
+			ast_node_free(p->u1.function_defn_node.body);
+			free(p);
+		break;
 		case AST_NODE_TYPE_STRING:
 			free(p->u1.string_value.value);
 			free(p);
