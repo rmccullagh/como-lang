@@ -22,6 +22,38 @@
 #include "ast.h"
 #include "globals.h"
 
+ast_node *ast_node_create_new(ast_node *value, int lineno, int colno)
+{
+	ast_node* retval = malloc(sizeof(ast_node));
+	retval->type = AST_NODE_TYPE_NEW;
+	retval->lineno = lineno;
+	retval->colno = colno;
+	retval->u1.new_node.expression = value;
+	return retval;
+}
+
+ast_node *ast_node_create_return(ast_node *value, int lineno, int colno)
+{
+	ast_node* retval = malloc(sizeof(ast_node));
+	retval->type = AST_NODE_TYPE_RETURN;
+	retval->lineno = lineno;
+	retval->colno = colno;
+	retval->u1.return_node.expression = value;
+	return retval;
+}
+
+ast_node *ast_node_create_anon_func_defn(ast_node *parameters, 
+		ast_node *body, int lineno, int colno)
+{
+	ast_node* retval = malloc(sizeof(ast_node));
+	retval->type = AST_NODE_TYPE_ANON_FUNC;
+	retval->lineno = lineno;
+	retval->colno = colno;
+	retval->u1.anon_func_node.parameters = parameters;
+	retval->u1.anon_func_node.body = body;
+	return retval;
+}
+
 ast_node *ast_node_create_function_defn(ast_node *name, ast_node *parameters, 
 		ast_node *body, int lineno, int colno)
 {

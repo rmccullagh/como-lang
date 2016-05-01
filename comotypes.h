@@ -35,5 +35,6 @@ como_object *como_type_new_int_object(long);
 como_object *como_type_new_double_object(double);
 como_object *como_type_new_function_object(como_object *, Object *);
 como_object *como_type_new_undefined_object(void);
+como_object *como_type_new_instance(void);
 
 #endif

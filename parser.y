@@ -45,6 +45,8 @@ typedef void* yyscan_t;
 }
 
 %token T_FUNC
+%token T_RETURN
+%token T_NEW
 %token '.'
 %token '='
 %token '+'
@@ -59,6 +61,7 @@ typedef void* yyscan_t;
 %type <ast> target assignment_statement
 %type <ast> function_defn_statement optional_function_name optional_parameter_list
 %type <ast> parameter_list parameter
+%type <ast> return_statement optional_expression
 
 %left '+'
 
@@ -130,6 +133,9 @@ expression
     | expression '+' expression   {
         $$ = ast_node_create_binary_op(AST_BINARY_OP_ADD, $1, $3, @1.first_line, @1.first_column);
     }
+		| T_NEW primary {
+			$$ = ast_node_create_new($2, @1.first_line, @1.first_column);
+		}
     | '(' expression ')' { $$ = $2; }
     ;
 
@@ -137,7 +143,7 @@ statement
     : expression_statement        { $$ = $1;                                }
     | assignment_statement        { $$ = $1;                                }
     | function_defn_statement     { $$ = $1;                                }
-    ;
+    | return_statement            { $$ = $1;                                }
 
 target
     : T_ID { $$ = ast_node_create_id($1, @1.first_line, @1.first_column); 
@@ -151,6 +157,11 @@ assignment_statement
         $$ = ast_node_create_binary_op(AST_BINARY_OP_ASSIGN, $1, $3, 
                           @1.first_line, @1.first_column);
     } 
+		| target '=' T_FUNC '(' optional_parameter_list ')' '{' statement_list '}' ';' {
+				ast_node *fn = ast_node_create_anon_func_defn($5, $8, @3.first_line, @3.first_column);
+        $$ = ast_node_create_binary_op(AST_BINARY_OP_ASSIGN, $1, fn, 
+                          @1.first_line, @1.first_column);
+		} 
    	;
 
 statement_list
@@ -165,9 +176,14 @@ expression_statement
     : expression ';'              { $$ = $1;                                }
     ;
 
+return_statement
+    : T_RETURN optional_expression ';' { 
+				$$ = ast_node_create_return($2, @1.first_line, @1.first_column); 
+    }
+    ;
+
 optional_function_name
-    : %empty                       { $$ = ast_node_create_id("<anonymous>", 0, 0); }
-    | T_ID                         {
+    : T_ID                         {
 			$$ = ast_node_create_id($1, @1.first_line, @1.first_column);
       free($1);
     }
@@ -185,6 +201,11 @@ parameter_list
 
 parameter
     : T_ID { $$ = ast_node_create_id($1, @1.first_line, @1.first_column); free($1); }
+    ;
+
+optional_expression
+    : %empty { $$ = NULL; }
+    | expression { $$ = $1; }
     ;
 
 function_defn_statement

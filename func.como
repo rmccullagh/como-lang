@@ -1,6 +1,14 @@
-func Object(name, self)
+func Object(name)
 {
-	name.toString();
+	return name;
 }
 
-obj = Object(1, 1);
+Object.toString = func(self) {
+	return "Object";
+};
+
+Object.set = func(key, value) {
+	return 10 + 10;
+};
+
+age = Object.set(1, 1, 2);

@@ -1,0 +1,6 @@
+func Foo(name)
+{
+	func Inner(a) {
+
+	}
+}

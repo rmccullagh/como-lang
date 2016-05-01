@@ -103,6 +103,16 @@ static void ast_pretty_print(ast_node *p, size_t indent)
 	}
 
 	switch(p->type) {
+		case AST_NODE_TYPE_RETURN:
+			printf("(return ");
+			ast_pretty_print(p->u1.return_node.expression, indent);
+			printf(")");
+		break;
+		case AST_NODE_TYPE_NEW:
+			printf("(new ");
+			ast_pretty_print(p->u1.new_node.expression, indent);
+			printf(")");
+		break;
 		case AST_NODE_TYPE_NUMBER:
 			printf("(int %ld)", p->u1.number_value);
 		break;
@@ -152,6 +162,16 @@ static void ast_pretty_print(ast_node *p, size_t indent)
 			indent = indent > 0 ? indent- 1 : 0;
 		}
 		break;
+		case AST_NODE_TYPE_ANON_FUNC: {
+			printf("(function <anonymous>");
+			indent = indent + 1;
+			ast_pretty_print(p->u1.anon_func_node.parameters, indent);
+			printf("\n");
+			ast_pretty_print(p->u1.anon_func_node.body, indent);
+			printf(")");
+			indent = indent > 0 ? indent- 1 : 0;
+		}
+		break;
 	}
 }
 
@@ -163,7 +183,7 @@ int main(int argc, char** argv)
 		printf("  --print-sym    Show the global symbol table\n");
 		return 0;
 	}
-	int show_sym = 0;
+	int show_sym = 1;
 
 	char* text = file_get_contents(argv[1]);
 
@@ -183,7 +203,7 @@ int main(int argc, char** argv)
 
 	ast_pretty_print(program, 0);
 
-	//ast_compile(argv[1], program, show_sym);
+	ast_compile(argv[1], program, show_sym);
 
 	return 0;
 }

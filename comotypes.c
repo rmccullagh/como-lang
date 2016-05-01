@@ -71,3 +71,17 @@ como_object *como_type_new_undefined_object(void)
 	return o;
 }
 
+como_object *como_type_new_instance(void)
+{
+	como_object *o = malloc(sizeof(como_object));
+	o->self = o;
+	o->value = newNull();
+	o->flags = COMO_TYPE_IS_OBJECT|COMO_TYPE_IS_CLASS;
+	o->type = malloc(sizeof(como_type));
+	o->type->name = "Object";
+	o->type->properties = newMap(2);
+	o->type->flags = 0;
+	return o;
+}
+
+

@@ -19,6 +19,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <object.h>
+#include <assert.h>
 #include "ast.h"
 #include "stack.h"
 #include "globals.h"
@@ -29,6 +30,9 @@
 
 typedef struct compiler_context {
 	Object* symbol_table;
+	Object* context;
+	como_object *current_object;
+	como_object *retval;
 } compiler_context;
 
 static compiler_context* cg;
@@ -58,6 +62,7 @@ static void setup_builtin(Object *symtable, const char *name, void *impl)
 	como_object *container = como_type_new_function_object(NULL, builtin_optr);
 	container->self = container;
 	container->flags |= COMO_TYPE_IS_SEALED;
+	container->flags |= COMO_TYPE_IS_BUILTIN;
 	
 	Object *fobj = newPointer((void *)container);
 	O_MRKD(fobj) = COMO_TYPE_IS_OBJECT;
@@ -70,8 +75,10 @@ static void compiler_init(void)
 {
 	cg = malloc(sizeof(compiler_context));
 	cg->symbol_table = newMap(2);
+	cg->context = NULL;
+	cg->retval = NULL;
+	cg->current_object = NULL;
 	setup_builtin(cg->symbol_table, "print", como_builtin_print);
-
 }
 
 static como_object *ex(ast_node *);
@@ -98,37 +105,160 @@ static Object *validate_call_args(ast_node *n)
 
 static como_object *como_do_call(ast_node *p)
 {
-	if(p == NULL) {
-		como_error_noreturn("ast_node is NULL\n");
-	}
-	
 	como_object *callablevar = ex(p->u1.call_node.expression);
+	como_object *retval = NULL;
 
-	if(!callablevar) {
-		como_error_noreturn("ex returned NULL\n");
-	}
-	
 	if(!(callablevar->flags & COMO_TYPE_IS_CALLABLE)) {
 		como_error_noreturn("value of type '%s' is not callable (%d:%d)\n", 
 				callablevar->type->name, p->u1.call_node.expression->lineno, 
 				p->u1.call_node.expression->colno); 
 	}
+	if(callablevar->flags & COMO_TYPE_IS_BUILTIN) {
+		Object *fimpl = callablevar->value;
+		if(O_TYPE(fimpl) != IS_FUNCTION) {
+			como_error_noreturn("object container type was not IS_FUNCTION\n");
+		}
+		Object *call_args = validate_call_args(p->u1.call_node.arguments);
+		como_type_method method = (como_type_method)O_FVAL(fimpl);
+		retval = method(callablevar->self, call_args);
+	} else {
+		Object *fimpl = callablevar->value;
+		if(O_TYPE(fimpl) != IS_POINTER) {
+			como_error_noreturn("object container type was not IS_POINTER\n");
+		}
+		ast_node *fn = (ast_node *)O_PTVAL(fimpl);
+		Object *fnsymtab = newMap(2);
+		if(fn->type == AST_NODE_TYPE_FUNC_DEFN) {
+			size_t arg_count = p->u1.call_node.arguments->u1.statements_node.count;
+			size_t param_count = fn->u1.function_defn_node.parameters->u1.statements_node.count;
+			size_t i;
+			if(arg_count != param_count) {
+				como_error_noreturn("function '%s' expects %zu arguments, but only %zu given (%d:%d)\n",
+						fn->u1.function_defn_node.name->u1.id_node.name, param_count, arg_count,
+						p->lineno, p->colno);
+			}
+		
+			ast_node_statements parameters = fn->u1.function_defn_node.parameters->u1.statements_node;
+			ast_node_statements arguments = p->u1.call_node.arguments->u1.statements_node;
 
-	Object *fimpl = callablevar->value;
+			for(i = 0; i < param_count; i++) {
+				const char *param_name = parameters.statement_list[i]->u1.id_node.name;
+				como_object *argvalue = ex(arguments.statement_list[i]);
+				if(!argvalue) {
+					como_error_noreturn("argument %zu was null\n", i);
+				}
+				Object *paramval = newPointer((void *)argvalue);
+				O_MRKD(paramval) = COMO_TYPE_IS_OBJECT;
+				mapInsert(fnsymtab, param_name, paramval); 
+			}
 
-	if(O_TYPE(fimpl) != IS_FUNCTION) {
-		como_error_noreturn("object container type was not IS_FUNCTION\n");
+			cg->context = fnsymtab;
+			assert(fn->u1.function_defn_node.body->type == AST_NODE_TYPE_STATEMENT_LIST);
+
+			ast_node_statements fstatements = fn->u1.function_defn_node.body->u1.statements_node;
+			for(i = 0; i < fstatements.count; i++) {
+				ast_node *st = fstatements.statement_list[i];
+				if(st->type == AST_NODE_TYPE_RETURN) {
+					cg->retval = ex(st);
+					break;
+				}	else {
+					(void)ex(st);
+				}
+			}
+		} else {
+			size_t arg_count = p->u1.call_node.arguments->u1.statements_node.count;
+			size_t param_count = fn->u1.anon_func_node.parameters->u1.statements_node.count;
+			size_t i;
+			if(arg_count != param_count) {
+				como_error_noreturn("function '%s' expects %zu arguments, but only %zu given (%d:%d)\n",
+						"<anonymous>", param_count, arg_count,
+						p->lineno, p->colno);
+			}
+		
+			ast_node_statements parameters = fn->u1.anon_func_node.parameters->u1.statements_node;
+			ast_node_statements arguments = p->u1.call_node.arguments->u1.statements_node;
+
+			for(i = 0; i < param_count; i++) {
+				const char *param_name = parameters.statement_list[i]->u1.id_node.name;
+				como_object *argvalue = ex(arguments.statement_list[i]);
+				if(!argvalue) {
+					como_error_noreturn("argument %zu was null\n", i);
+				}
+				Object *paramval = newPointer((void *)argvalue);
+				O_MRKD(paramval) = COMO_TYPE_IS_OBJECT;
+				mapInsert(fnsymtab, param_name, paramval); 
+			}
+
+			cg->context = fnsymtab;
+			assert(fn->u1.anon_func_node.body->type == AST_NODE_TYPE_STATEMENT_LIST);
+
+			ast_node_statements fstatements = fn->u1.anon_func_node.body->u1.statements_node;
+			for(i = 0; i < fstatements.count; i++) {
+				ast_node *st = fstatements.statement_list[i];
+				if(st->type == AST_NODE_TYPE_RETURN) {
+					cg->retval = ex(st);
+					break;
+				}	else {
+					(void)ex(st);
+				}
+			}
+		}
+
+		retval = cg->retval == NULL ? como_type_new_undefined_object() : cg->retval;
+		cg->context = NULL;
+		objectDestroy(fnsymtab);
+		cg->retval = NULL;
 	}
+	return retval;
+}
 
-	Object *call_args = validate_call_args(p->u1.call_node.arguments);
-
-	como_type_method method = (como_type_method)O_FVAL(fimpl);
-
-	if(callablevar->self == NULL) {
-		como_error_noreturn("self was NULL\n");
+static como_object *como_do_func_defn(ast_node *p, int anon)
+{
+	assert(p->type == AST_NODE_TYPE_FUNC_DEFN);
+	ast_node_function_defn defn = p->u1.function_defn_node;
+	assert(defn.name->type == AST_NODE_TYPE_ID);
+	const char *name = defn.name->u1.id_node.name;
+	ast_node_statements *body = &defn.body->u1.statements_node;
+	size_t i;
+	for(i = 0; i < body->count; i++) {
+		if(body->statement_list[i]->type == AST_NODE_TYPE_FUNC_DEFN) {
+			como_error_noreturn("nested function definitions are forbidden (%d:%d)\n",
+					body->statement_list[i]->lineno, body->statement_list[i]->colno);
+		}
 	}
+	Object *builtin_optr = newPointer((void *)p);
+	como_object *container = como_type_new_function_object(NULL, builtin_optr);
+	container->self = container;
+	if(!anon) {
+		Object *fobj = newPointer((void *)container);
+		O_MRKD(fobj) = COMO_TYPE_IS_OBJECT;
+		mapInsert(cg->symbol_table, name, fobj);
+	}
+	return container;
+}
 
-	return method(callablevar->self, call_args);
+static como_object *como_create_anon_func(ast_node *p)
+{
+	assert(p->type == AST_NODE_TYPE_ANON_FUNC);
+	ast_node_anon_func_defn defn = p->u1.anon_func_node;
+	ast_node_statements *body = &defn.body->u1.statements_node;
+	size_t i;
+	for(i = 0; i < body->count; i++) {
+		if(body->statement_list[i]->type == AST_NODE_TYPE_FUNC_DEFN) {
+			como_error_noreturn("nested function definitions are forbidden (%d:%d)\n",
+					body->statement_list[i]->lineno, body->statement_list[i]->colno);
+		}
+	}
+	Object *builtin_optr = newPointer((void *)p);
+	como_object *container = como_type_new_function_object(NULL, builtin_optr);
+	container->self = container;
+	return container;
+}
+
+static como_object *como_do_create_instance(ast_node *p)
+{
+	assert(p->type == AST_NODE_TYPE_NEW);
+	return NULL;
 }
 
 static como_object* ex(ast_node* p)
@@ -139,6 +269,15 @@ static como_object* ex(ast_node* p)
 	switch(p->type) {
 		default:
 			como_error_noreturn("invalid ast.node_type\n");
+		break;
+		case AST_NODE_TYPE_NEW:
+			return como_do_create_instance(p);
+		break;
+		case AST_NODE_TYPE_RETURN:
+			return ex(p->u1.return_node.expression);
+		break;
+		case AST_NODE_TYPE_FUNC_DEFN:
+			return como_do_func_defn(p, 0);
 		break;
 		case AST_NODE_TYPE_STRING:
 			return como_type_new_string_object(p->u1.string_value.value);
@@ -154,22 +293,44 @@ static como_object* ex(ast_node* p)
 		}
 		break;
 		case AST_NODE_TYPE_ID: {
-			Object* value;
-			value = mapSearchEx(cg->symbol_table, p->u1.id_node.name);
-			if(!value) {
-				como_error_noreturn("'%s' is not defined (%d:%d)\n", 
-						p->u1.id_node.name, p->lineno, p->colno); 
-			} else {
-				if(O_TYPE(value) != IS_POINTER) {
-					como_error_noreturn("O_TYPE: value of '%s' is not IS_FUNCTION\n",
-							p->u1.id_node.name);
-				}
-				if(O_MRKD(value) & COMO_TYPE_IS_OBJECT) {
-					return (como_object *)O_PTVAL(value);
+			Object* value = NULL;
+			if(cg->context == NULL) {
+				value = mapSearchEx(cg->symbol_table, p->u1.id_node.name);
+				if(!value) {
+					como_error_noreturn("'%s' is not defined (%d:%d)\n", 
+							p->u1.id_node.name, p->lineno, p->colno); 
 				} else {
-					como_error_noreturn("O_MRKD(value) is not & COMO_TYPE_IS_OBJECT\n");
+					if(O_TYPE(value) != IS_POINTER) {
+						como_error_noreturn("O_TYPE: value of '%s' is not IS_FUNCTION\n",
+								p->u1.id_node.name);
+					}
+					if(O_MRKD(value) & COMO_TYPE_IS_OBJECT) {
+						return (como_object *)O_PTVAL(value);
+					} else {
+						como_error_noreturn("O_MRKD(value) is not & COMO_TYPE_IS_OBJECT\n");
+					}
+				}
+			} else {
+				value = mapSearchEx(cg->context, p->u1.id_node.name);
+				if(!value) {
+					value = mapSearchEx(cg->symbol_table, p->u1.id_node.name);
+				}
+				if(!value) {
+					como_error_noreturn("'%s' is not defined (%d:%d)\n", 
+							p->u1.id_node.name, p->lineno, p->colno); 
+				} else {
+					if(O_TYPE(value) != IS_POINTER) {
+						como_error_noreturn("O_TYPE: value of '%s' is not IS_FUNCTION\n",
+								p->u1.id_node.name);
+					}
+					if(O_MRKD(value) & COMO_TYPE_IS_OBJECT) {
+						return (como_object *)O_PTVAL(value);
+					} else {
+						como_error_noreturn("O_MRKD(value) is not & COMO_TYPE_IS_OBJECT\n");
+					}
 				}
 			}
+			return NULL;
 		}
 		break;
 		case AST_NODE_TYPE_STATEMENT_LIST: {
@@ -228,7 +389,16 @@ static como_object* ex(ast_node* p)
 				case AST_BINARY_OP_ASSIGN: {
 					if(p->u1.binary_node.left->type == AST_NODE_TYPE_ID) {
 						const char *left = p->u1.binary_node.left->u1.id_node.name;
-						Object *v = mapSearch(cg->symbol_table, left);
+						como_debug("assign to id '%s'\n", left);
+						Object *v;
+						if(cg->context == NULL) {
+							v = mapSearch(cg->symbol_table, left);
+						} else {
+							v = mapSearch(cg->context, left);
+							if(v == NULL) {
+								v = mapSearch(cg->symbol_table, left);
+							}
+						}
 						if(v != NULL) {
 							if(O_TYPE(v) == IS_POINTER) {
 								if(O_MRKD(v) & COMO_TYPE_IS_OBJECT) {
@@ -240,13 +410,23 @@ static como_object* ex(ast_node* p)
 								}
 							}
 						}
-						como_object *right = ex(p->u1.binary_node.right);
+						como_object *right;
+						if(p->u1.binary_node.right->type == AST_NODE_TYPE_ANON_FUNC) {
+							right = como_create_anon_func(p->u1.binary_node.right);
+						} else {
+							right = ex(p->u1.binary_node.right);
+						}
 						Object *value = newPointer((void *)right);
 						O_MRKD(value) = COMO_TYPE_IS_OBJECT;
-						mapInsertEx(cg->symbol_table, left, value);
+						if(cg->context == NULL) {
+							mapInsertEx(cg->symbol_table, left, value);
+						} else {
+							mapInsertEx(cg->context, left, value);
+						}
 						return right;
 					} else {
 						como_object *primary = ex(p->u1.binary_node.left->u1.binary_node.left);
+						printf("%d\n", p->u1.binary_node.left->u1.binary_node.left->type);
 						const char *id = "<unknown>";
 						if(p->u1.binary_node.left->u1.binary_node.left->type == AST_NODE_TYPE_ID) {
 							id = p->u1.binary_node.left->u1.binary_node.left->u1.id_node.name;
@@ -267,11 +447,18 @@ static como_object* ex(ast_node* p)
 								}
 							}
 						}
-
-						como_object *right = ex(p->u1.binary_node.right);
-						Object *value = newPointer((void *)right);
-						O_MRKD(value) = COMO_TYPE_IS_OBJECT;
-						mapInsert(primary->type->properties, name, value);
+						como_object *right;
+						if(p->u1.binary_node.right->type == AST_NODE_TYPE_ANON_FUNC) {
+							right = como_create_anon_func(p->u1.binary_node.right);
+							Object *value = newPointer((void *)right);
+							O_MRKD(value) = COMO_TYPE_IS_OBJECT;
+							mapInsert(primary->type->properties, name, value);
+						} else {
+							right = ex(p->u1.binary_node.right);
+							Object *value = newPointer((void *)right);
+							O_MRKD(value) = COMO_TYPE_IS_OBJECT;
+							mapInsert(primary->type->properties, name, value);
+						}
 						return right;
 					}	
 				} break;
@@ -302,14 +489,14 @@ void ast_compile(const char* filename, ast_node* program, int show_sym)
 				Bucket *b = symtab->buckets[i];
 				while(b != NULL) {
 					Bucket *next = b->next;
-						printf("%s:", b->key->value);
+						printf("%s :", b->key->value);
 						Object *value = b->value;
-						if(O_MRKD(value) & COMO_TYPE_IS_OBJECT) {
+						if(O_TYPE(value) == IS_POINTER) {
 							como_object *ob = (como_object *)O_PTVAL(value);
 							if(ob) {
 								fprintf(stdout, "<%p>: ", (void *)ob->value);
 								OBJECT_DUMP(ob->value);
-								fputc('\n', stdout);
+								OBJECT_DUMP(ob->type->properties);
 							}
 						}
 					b = next;
