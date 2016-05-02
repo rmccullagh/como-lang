@@ -110,6 +110,11 @@ static como_object *como_do_call_ex(como_object *self, ast_node *p, ast_node *ar
 	assert(args);
 	assert(args->type == AST_NODE_TYPE_STATEMENT_LIST);
 	
+	
+	Object *old_context = cg->context;
+	como_object *old_retval = cg->retval;
+	como_object *old_current_object = cg->current_object;
+	
 	cg->current_object = self;
 	Object *fnsymtab = newMap(2);
 	size_t arg_count = args->u1.statements_node.count;
@@ -149,10 +154,10 @@ static como_object *como_do_call_ex(como_object *self, ast_node *p, ast_node *ar
 		}
 	}
 
-	cg->context = NULL;
+	cg->context = old_context;
 	objectDestroy(fnsymtab);
-	cg->retval = NULL;
-	cg->current_object = NULL;
+	cg->retval = old_retval;
+	cg->current_object = old_current_object;
 	return NULL;
 }
 
@@ -160,6 +165,10 @@ static como_object *como_do_call(ast_node *p)
 {
 	como_object *callablevar = ex(p->u1.call_node.expression);
 	como_object *retval = NULL;
+
+	Object *old_context = cg->context;
+	como_object *old_retval = cg->retval;
+	como_object *old_current_object = cg->current_object;
 
 	if(!(callablevar->flags & COMO_TYPE_IS_CALLABLE)) {
 		como_error_noreturn("value of type '%s' is not callable (%d:%d)\n", 
@@ -259,10 +268,10 @@ static como_object *como_do_call(ast_node *p)
 		}
 
 		retval = cg->retval == NULL ? como_type_new_undefined_object() : cg->retval;
-		cg->context = NULL;
+		cg->context = old_context;
 		objectDestroy(fnsymtab);
-		cg->retval = NULL;
-		cg->current_object = NULL;
+		cg->retval = old_retval;
+		cg->current_object = old_current_object;
 	}
 	return retval;
 }
@@ -454,7 +463,12 @@ static como_object* ex(ast_node* p)
 					}
 				}
 			} else {
-					value = mapSearchEx(cg->current_object->type->properties, p->u1.id_node.name);
+					if(cg->current_object != NULL) {
+						value = mapSearchEx(cg->current_object->type->properties, p->u1.id_node.name);
+					} else {
+						value = NULL;
+					}
+
 					if(!value) {
 						value = mapSearchEx(cg->context, p->u1.id_node.name);
 					}

@@ -48,6 +48,7 @@ typedef void* yyscan_t;
 %token T_FUNC
 %token T_RETURN
 %token T_NEW
+%token T_NAMESPACE;
 %token '.'
 %token '='
 %token '+'
