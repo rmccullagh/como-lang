@@ -1,19 +1,17 @@
 class Object
 {
 	func Object(name) {
-		self.name = name;
+		self.setName(name);
 	}
 	func setName(a) {
 		self.name = a;
-		return self;
+		print(a);
 	}
 	func getName() {
 		return self.name;
 	}
 }
 
-obj = new Object("Ryan");
+obj = new Object(1);
+print(obj.getName());
 
-obj.hello = "World";
-
-print(obj.setName("Hey").getName());

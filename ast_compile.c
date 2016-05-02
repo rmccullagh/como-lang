@@ -323,7 +323,31 @@ static como_object *como_do_create_instance(ast_node *p)
 				name->u1.id_node.name, p->lineno, p->colno);
 	}
 
-	Object *ctor = mapSearchEx(type->type->properties, name->u1.id_node.name);
+	como_object *instance = como_type_new_instance();
+	instance->type->properties = copyObject(type->type->properties);
+	instance->self = instance;
+	instance->value = copyObject(type->value);
+
+	Object *selfv = newPointer((void *)instance);
+	O_MRKD(selfv) = COMO_TYPE_IS_OBJECT|COMO_TYPE_IS_SEALED;
+	mapInsertEx(instance->type->properties, "self", selfv);
+
+	Map *methods = O_MVAL(instance->type->properties);
+	uint32_t i;
+	for(i = 0; i < methods->capacity; i++) {
+		if(methods->buckets[i] != NULL) {
+			Bucket *b = methods->buckets[i];
+		 	while(b != NULL) {
+				if(O_TYPE(b->value) == IS_POINTER && (O_MRKD(b->value) & COMO_TYPE_IS_OBJECT)) {
+					como_object *ob = (como_object *)O_PTVAL(b->value);
+					ob->self = instance;
+				}
+				b = b->next;
+			}	
+		}
+	}
+
+	Object *ctor = mapSearchEx(instance->type->properties, name->u1.id_node.name);
 	if(ctor) {
 		if(O_TYPE(ctor) != IS_POINTER) {
 			como_error_noreturn("%s.%s was not IS_POINTER\n", name->u1.id_node.name, name->u1.id_node.name);
@@ -342,10 +366,6 @@ static como_object *como_do_create_instance(ast_node *p)
 		(void)como_do_call_ex(ctor_impl->self, method, p->u1.new_node.arguments);	
 	}
 
-	como_object *instance = como_type_new_instance();
-	instance->type->properties = type->type->properties;
-	instance->self = instance;
-	instance->value = type->value;
 	return instance;
 }
 
@@ -434,10 +454,10 @@ static como_object* ex(ast_node* p)
 					}
 				}
 			} else {
-				if(strcmp(p->u1.id_node.name, "self") == 0) {
-					return cg->current_object;
-				} else {
-					value = mapSearchEx(cg->context, p->u1.id_node.name);
+					value = mapSearchEx(cg->current_object->type->properties, p->u1.id_node.name);
+					if(!value) {
+						value = mapSearchEx(cg->context, p->u1.id_node.name);
+					}
 					if(!value) {
 						value = mapSearchEx(cg->symbol_table, p->u1.id_node.name);
 					}
@@ -455,7 +475,6 @@ static como_object* ex(ast_node* p)
 							como_error_noreturn("O_MRKD(value) is not & COMO_TYPE_IS_OBJECT\n");
 						}
 					}
-				}
 			}
 			return NULL;
 		}
@@ -517,7 +536,9 @@ static como_object* ex(ast_node* p)
 						if(cg->context == NULL) {
 							v = mapSearch(cg->symbol_table, left);
 						} else {
-							v = mapSearch(cg->context, left);
+							v = mapSearch(cg->current_object->type->properties, left);
+							if(!v)
+								v = mapSearch(cg->context, left);
 							if(v == NULL) {
 								v = mapSearch(cg->symbol_table, left);
 							}
@@ -526,7 +547,7 @@ static como_object* ex(ast_node* p)
 							if(O_TYPE(v) == IS_POINTER) {
 								if(O_MRKD(v) & COMO_TYPE_IS_OBJECT) {
 									como_object *ov = (como_object *)O_PTVAL(v);
-									if(ov->flags & COMO_TYPE_IS_SEALED) {
+									if((ov->flags & COMO_TYPE_IS_SEALED) || (O_MRKD(v) & COMO_TYPE_IS_SEALED)) {
 										como_error_noreturn("can't assign to read-only identifier '%s' (%d:%d)\n", 
 												left, p->lineno, p->colno);	
 									}
@@ -557,7 +578,7 @@ static como_object* ex(ast_node* p)
 						Object *v = mapSearch(primary->type->properties, name);
 						if(v != NULL) {
 							if(O_TYPE(v) == IS_POINTER) {
-								if(O_MRKD(v) & COMO_TYPE_IS_OBJECT) {
+								if((O_MRKD(v) & COMO_TYPE_IS_OBJECT) || (O_MRKD(v) & COMO_TYPE_IS_SEALED)) {
 									como_object *ov = (como_object *)O_PTVAL(v);
 									if(ov->flags & COMO_TYPE_IS_SEALED) {
 										como_error_noreturn("property '%s' is read-only\n", name);	
