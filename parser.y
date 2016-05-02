@@ -138,7 +138,7 @@ expression
 		| T_NEW class_name '(' optional_arg_list ')' {
 			$$ = ast_node_create_new($2, $4, @1.first_line, @1.first_column);
 		}
-    | '(' expression ')' { $$ = $2; }
+		| '(' expression ')' { $$ = $2; }
     ;
 
 statement

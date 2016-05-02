@@ -104,6 +104,58 @@ static Object *validate_call_args(ast_node *n)
 	return arglist;
 }
 
+static como_object *como_do_call_ex(como_object *self, ast_node *p, ast_node *args)
+{
+	assert(p->type == AST_NODE_TYPE_FUNC_DEFN);
+	assert(args);
+	assert(args->type == AST_NODE_TYPE_STATEMENT_LIST);
+	
+	cg->current_object = self;
+	Object *fnsymtab = newMap(2);
+	size_t arg_count = args->u1.statements_node.count;
+	size_t param_count = p->u1.function_defn_node.parameters->u1.statements_node.count;
+	size_t i;
+	if(arg_count != param_count) {
+		como_error_noreturn("function '%s' expects %zu arguments, but only %zu given (%d:%d)\n",
+				p->u1.function_defn_node.name->u1.id_node.name, param_count, arg_count,
+				p->lineno, p->colno);
+	}
+
+	ast_node_statements parameters = p->u1.function_defn_node.parameters->u1.statements_node;
+	ast_node_statements arguments = args->u1.statements_node;
+
+	for(i = 0; i < param_count; i++) {
+		const char *param_name = parameters.statement_list[i]->u1.id_node.name;
+		como_object *argvalue = ex(arguments.statement_list[i]);
+		if(!argvalue) {
+			como_error_noreturn("argument %zu was null\n", i);
+		}
+		Object *paramval = newPointer((void *)argvalue);
+		O_MRKD(paramval) = COMO_TYPE_IS_OBJECT;
+		mapInsert(fnsymtab, param_name, paramval); 
+	}
+
+	cg->context = fnsymtab;
+	assert(p->u1.function_defn_node.body->type == AST_NODE_TYPE_STATEMENT_LIST);
+
+	ast_node_statements fstatements = p->u1.function_defn_node.body->u1.statements_node;
+	for(i = 0; i < fstatements.count; i++) {
+		ast_node *st = fstatements.statement_list[i];
+		if(st->type == AST_NODE_TYPE_RETURN) {
+			cg->retval = ex(st);
+			break;
+		}	else {
+			(void)ex(st);
+		}
+	}
+
+	cg->context = NULL;
+	objectDestroy(fnsymtab);
+	cg->retval = NULL;
+	cg->current_object = NULL;
+	return NULL;
+}
+
 static como_object *como_do_call(ast_node *p)
 {
 	como_object *callablevar = ex(p->u1.call_node.expression);
@@ -114,6 +166,7 @@ static como_object *como_do_call(ast_node *p)
 				callablevar->type->name, p->u1.call_node.expression->lineno, 
 				p->u1.call_node.expression->colno); 
 	}
+	cg->current_object = callablevar->self;
 	if(callablevar->flags & COMO_TYPE_IS_BUILTIN) {
 		Object *fimpl = callablevar->value;
 		if(O_TYPE(fimpl) != IS_FUNCTION) {
@@ -209,6 +262,7 @@ static como_object *como_do_call(ast_node *p)
 		cg->context = NULL;
 		objectDestroy(fnsymtab);
 		cg->retval = NULL;
+		cg->current_object = NULL;
 	}
 	return retval;
 }
@@ -269,9 +323,28 @@ static como_object *como_do_create_instance(ast_node *p)
 				name->u1.id_node.name, p->lineno, p->colno);
 	}
 
+	Object *ctor = mapSearchEx(type->type->properties, name->u1.id_node.name);
+	if(ctor) {
+		if(O_TYPE(ctor) != IS_POINTER) {
+			como_error_noreturn("%s.%s was not IS_POINTER\n", name->u1.id_node.name, name->u1.id_node.name);
+		}
+		if(!(O_MRKD(ctor) & COMO_TYPE_IS_OBJECT)) {
+			como_error_noreturn("%s.%s was not COMO_TYPE_IS_OBJECT\n", name->u1.id_node.name, name->u1.id_node.name);
+		}
+		como_object *ctor_impl = (como_object *)O_PTVAL(ctor);
+
+		if(!(ctor_impl->flags & COMO_TYPE_IS_CALLABLE)) {
+			como_error_noreturn("%s.%s was not callable\n", name->u1.id_node.name, name->u1.id_node.name);
+		}
+		ast_node *method = (ast_node *)O_PTVAL(ctor_impl->value);
+		assert(method->type == AST_NODE_TYPE_FUNC_DEFN);
+
+		(void)como_do_call_ex(ctor_impl->self, method, p->u1.new_node.arguments);	
+	}
+
 	como_object *instance = como_type_new_instance();
 	instance->type->properties = type->type->properties;
-	instance->self = type;
+	instance->self = instance;
 	instance->value = type->value;
 	return instance;
 }
@@ -288,6 +361,7 @@ static como_object *como_do_create_class(ast_node *p)
 	ast_node_statements stmts = defn.statements->u1.statements_node;
 	size_t i;
 	como_object *classdef = como_type_new_class();
+	classdef->self = classdef;
 	Object *methods = newMap(2);
 	for(i = 0; i < stmts.count; i++) {
 		ast_node *node = stmts.statement_list[i];
@@ -298,11 +372,14 @@ static como_object *como_do_create_class(ast_node *p)
 		O_MRKD(builtin_optr) = COMO_TYPE_IS_OBJECT;
 		como_object *container = como_type_new_function_object(NULL, builtin_optr);
 		container->self = classdef;
-		mapInsertEx(methods, fname, builtin_optr);
+		Object *fobj = newPointer((void *)container);
+		O_MRKD(fobj) = COMO_TYPE_IS_OBJECT;
+		mapInsertEx(methods, fname, fobj);
 	}
 	classdef->type->properties = methods;
 	Object *value = newPointer((void *)classdef);
 	O_MRKD(value) = COMO_TYPE_IS_OBJECT;
+	classdef->value = value;
 	mapInsertEx(cg->symbol_table, id, value);
 	return classdef;
 }
@@ -324,9 +401,6 @@ static como_object* ex(ast_node* p)
 		break;
 		case AST_NODE_TYPE_RETURN:
 			return ex(p->u1.return_node.expression);
-		break;
-		case AST_NODE_TYPE_FUNC_DEFN:
-			return como_do_func_defn(p, 0);
 		break;
 		case AST_NODE_TYPE_STRING:
 			return como_type_new_string_object(p->u1.string_value.value);
@@ -360,25 +434,26 @@ static como_object* ex(ast_node* p)
 					}
 				}
 			} else {
-				if(strcmp(p->u1.id_node.name, "this") == 0) {
+				if(strcmp(p->u1.id_node.name, "self") == 0) {
 					return cg->current_object;
-				}
-				value = mapSearchEx(cg->context, p->u1.id_node.name);
-				if(!value) {
-					value = mapSearchEx(cg->symbol_table, p->u1.id_node.name);
-				}
-				if(!value) {
-					como_error_noreturn("'%s' is not defined (%d:%d)\n", 
-							p->u1.id_node.name, p->lineno, p->colno); 
 				} else {
-					if(O_TYPE(value) != IS_POINTER) {
-						como_error_noreturn("O_TYPE: value of '%s' is not IS_FUNCTION\n",
-								p->u1.id_node.name);
+					value = mapSearchEx(cg->context, p->u1.id_node.name);
+					if(!value) {
+						value = mapSearchEx(cg->symbol_table, p->u1.id_node.name);
 					}
-					if(O_MRKD(value) & COMO_TYPE_IS_OBJECT) {
-						return (como_object *)O_PTVAL(value);
+					if(!value) {
+						como_error_noreturn("'%s' is not defined (%d:%d)\n", 
+								p->u1.id_node.name, p->lineno, p->colno); 
 					} else {
-						como_error_noreturn("O_MRKD(value) is not & COMO_TYPE_IS_OBJECT\n");
+						if(O_TYPE(value) != IS_POINTER) {
+							como_error_noreturn("O_TYPE: value of '%s' is not IS_FUNCTION\n",
+									p->u1.id_node.name);
+						}
+						if(O_MRKD(value) & COMO_TYPE_IS_OBJECT) {
+							return (como_object *)O_PTVAL(value);
+						} else {
+							como_error_noreturn("O_MRKD(value) is not & COMO_TYPE_IS_OBJECT\n");
+						}
 					}
 				}
 			}
@@ -402,30 +477,27 @@ static como_object* ex(ast_node* p)
 					/* this */
 					como_object *parent = ex(p->u1.binary_node.left);
 					como_debug("Type of the primary in the dot operation: %s\n", parent->type->name);
-					if(O_TYPE(parent->value) == IS_NULL) {
-							como_error_noreturn("property is not defined (%d:%d)\n",
-									p->u1.binary_node.left->lineno, p->u1.binary_node.left->colno);
+					if(!((parent->flags & COMO_TYPE_IS_INSTANCE) || (parent->flags & COMO_TYPE_IS_CLASS))) {
+						como_error_noreturn("Can't access property on non object (%d:%d)\n",
+								p->lineno, p->colno);
 					}
-					if(p->u1.binary_node.right->type != AST_NODE_TYPE_ID) {
-						como_error_noreturn("binary_node.right.type != AST_NODE_TYPE_ID\n");
+					assert(p->u1.binary_node.right->type == AST_NODE_TYPE_ID);
+					Object *value = mapSearch(parent->type->properties, p->u1.binary_node.right->u1.id_node.name);
+					if(!value) {
+						como_error_noreturn("%s is not defined\n", p->u1.binary_node.right->u1.id_node.name);
 					}
 
-					const char *key = p->u1.binary_node.right->u1.id_node.name;
-					Object *keyvalue = mapSearchEx(parent->type->properties,
-																key);
-					if(keyvalue == NULL) {
-						return como_type_new_undefined_object();
+					if(O_TYPE(value) != IS_POINTER) {
+						como_error_noreturn("value is not IS_POINTER\n");	
 					}
-					if(O_TYPE(keyvalue) != IS_POINTER) {
-						como_error_noreturn("'%s' is not a IS_FUNCTION (%d)\n", 
-								key, p->u1.binary_node.right->lineno);
+					if(!(O_MRKD(value) & COMO_TYPE_IS_OBJECT)) {
+						como_error_noreturn("value is not COMO_TYPE_IS_OBJECT\n");	
 					}
-					if(O_MRKD(keyvalue) & COMO_TYPE_IS_OBJECT) {
-						return (como_object *)O_PTVAL(keyvalue);
-					} else {
-						como_error_noreturn("identifier '%s' type is not implicit COMO_TYPE_IS_OBJECT (%d)\n", 
-								key, p->u1.binary_node.right->lineno);
-					}
+
+					como_object *right = (como_object *)O_PTVAL(value);
+					como_debug("right is type %s\n", right->type->name);
+					return right;
+
 				} break;
 				case AST_BINARY_OP_ADD: {
 					como_object* left  = ex(p->u1.binary_node.left);
@@ -462,11 +534,7 @@ static como_object* ex(ast_node* p)
 							}
 						}
 						como_object *right;
-						if(p->u1.binary_node.right->type == AST_NODE_TYPE_ANON_FUNC) {
-							right = como_create_anon_func(p->u1.binary_node.right);
-						} else {
-							right = ex(p->u1.binary_node.right);
-						}
+						right = ex(p->u1.binary_node.right);
 						Object *value = newPointer((void *)right);
 						O_MRKD(value) = COMO_TYPE_IS_OBJECT;
 						if(cg->context == NULL) {
@@ -498,17 +566,10 @@ static como_object* ex(ast_node* p)
 							}
 						}
 						como_object *right;
-						if(p->u1.binary_node.right->type == AST_NODE_TYPE_ANON_FUNC) {
-							right = como_create_anon_func(p->u1.binary_node.right);
-							Object *value = newPointer((void *)right);
-							O_MRKD(value) = COMO_TYPE_IS_OBJECT;
-							mapInsert(primary->type->properties, name, value);
-						} else {
-							right = ex(p->u1.binary_node.right);
-							Object *value = newPointer((void *)right);
-							O_MRKD(value) = COMO_TYPE_IS_OBJECT;
-							mapInsert(primary->type->properties, name, value);
-						}
+						right = ex(p->u1.binary_node.right);
+						Object *value = newPointer((void *)right);
+						O_MRKD(value) = COMO_TYPE_IS_OBJECT;
+						mapInsert(primary->type->properties, name, value);
 						return right;
 					}	
 				} break;
