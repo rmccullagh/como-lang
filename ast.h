@@ -31,7 +31,7 @@ typedef enum {
 	AST_NODE_TYPE_STATEMENT_LIST, AST_NODE_TYPE_BIN_OP,
 	AST_NODE_TYPE_CALL, AST_NODE_TYPE_FUNC_DEFN,
 	AST_NODE_TYPE_RETURN, AST_NODE_TYPE_NEW,
-	AST_NODE_TYPE_ANON_FUNC,
+	AST_NODE_TYPE_ANON_FUNC, AST_NODE_TYPE_CLASS_DEFN
 } ast_node_type;
 
 typedef enum {
@@ -45,6 +45,11 @@ typedef struct {
 	ast_node *parameters;
 	ast_node *body;
 } ast_node_function_defn;
+
+typedef struct {
+	ast_node *name;
+	ast_node *statements;
+} ast_node_class_defn;
 
 typedef struct {
 	ast_node *parameters;
@@ -80,7 +85,8 @@ typedef struct {
 } ast_node_return;
 
 typedef struct {
-	ast_node *expression;
+	ast_node *name;
+	ast_node *arguments;
 } ast_node_new;
 
 struct ast_node {
@@ -102,12 +108,14 @@ struct ast_node {
 		ast_node_return				 return_node;
 		ast_node_new					  new_node;
 		ast_node_anon_func_defn anon_func_node;
+		ast_node_class_defn		 class_defn_node;
 	} u1;
 };
 
 extern ast_node *ast_node_create_anon_func_defn(ast_node *, ast_node *, int, int);
-extern ast_node *ast_node_create_new(ast_node *, int, int);
+extern ast_node *ast_node_create_new(ast_node *, ast_node *, int, int);
 extern ast_node *ast_node_create_return(ast_node *, int, int);
+extern ast_node *ast_node_create_class_defn(ast_node *, ast_node *, int, int);
 extern ast_node *ast_node_create_function_defn(ast_node *, ast_node *, ast_node *, int, int);
 extern ast_node *ast_node_create_number(long, int, int);
 extern ast_node *ast_node_create_double(double, int, int);

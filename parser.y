@@ -60,9 +60,10 @@ typedef void* yyscan_t;
 %type <ast> value primary call accessor optional_arg_list
 %type <ast> argument_list argument
 %type <ast> target assignment_statement
-%type <ast> function_defn_statement optional_function_name optional_parameter_list
+%type <ast> class_defn_statement class_name optional_parameter_list
 %type <ast> parameter_list parameter
-%type <ast> return_statement optional_expression
+%type <ast> function_defn_statement function_statements class_statements class_statement
+%type <ast> return_statement optional_expression function_statement
 
 %left '+'
 
@@ -134,8 +135,8 @@ expression
     | expression '+' expression   {
         $$ = ast_node_create_binary_op(AST_BINARY_OP_ADD, $1, $3, @1.first_line, @1.first_column);
     }
-		| T_NEW primary {
-			$$ = ast_node_create_new($2, @1.first_line, @1.first_column);
+		| T_NEW class_name '(' optional_arg_list ')' {
+			$$ = ast_node_create_new($2, $4, @1.first_line, @1.first_column);
 		}
     | '(' expression ')' { $$ = $2; }
     ;
@@ -143,8 +144,18 @@ expression
 statement
     : expression_statement        { $$ = $1;                                }
     | assignment_statement        { $$ = $1;                                }
-    | function_defn_statement     { $$ = $1;                                }
+    | class_defn_statement        { $$ = $1;                                }
+		;
+
+function_statement
+    : expression_statement        { $$ = $1;                                }
+    | assignment_statement        { $$ = $1;                                }
     | return_statement            { $$ = $1;                                }
+		;
+
+class_statement
+    : function_defn_statement    { $$ = $1;                                 }
+		;
 
 target
     : T_ID { $$ = ast_node_create_id($1, @1.first_line, @1.first_column); 
@@ -157,13 +168,24 @@ assignment_statement
     : target '=' expression ';'     {
         $$ = ast_node_create_binary_op(AST_BINARY_OP_ASSIGN, $1, $3, 
                           @1.first_line, @1.first_column);
-    } 
-		| target '=' T_FUNC '(' optional_parameter_list ')' '{' statement_list '}' ';' {
-				ast_node *fn = ast_node_create_anon_func_defn($5, $8, @3.first_line, @3.first_column);
-        $$ = ast_node_create_binary_op(AST_BINARY_OP_ASSIGN, $1, fn, 
-                          @1.first_line, @1.first_column);
-		} 
-   	;
+   	}
+		;
+
+class_statements
+    : %empty                      { $$ = ast_node_create_statement_list(0); } 
+    | class_statements class_statement    {
+        ast_node_statement_list_push($1, $2);
+        $$ = $1;
+    }
+    ;
+
+function_statements
+     : %empty                      { $$ = ast_node_create_statement_list(0); } 
+    | function_statements function_statement    {
+        ast_node_statement_list_push($1, $2);
+        $$ = $1;
+    }
+    ;
 
 statement_list
      : %empty                      { $$ = ast_node_create_statement_list(0); } 
@@ -172,6 +194,7 @@ statement_list
         $$ = $1;
     }
     ;
+
 
 expression_statement
     : expression ';'              { $$ = $1;                                }
@@ -183,7 +206,7 @@ return_statement
     }
     ;
 
-optional_function_name
+class_name
     : T_ID                         {
 			$$ = ast_node_create_id($1, @1.first_line, @1.first_column);
       free($1);
@@ -210,8 +233,14 @@ optional_expression
     ;
 
 function_defn_statement
-    : T_FUNC optional_function_name '(' optional_parameter_list ')' '{' statement_list '}' {
-			$$ = ast_node_create_function_defn($2, $4, $7, @2.first_line, @2.first_column);
+		: T_FUNC class_name '(' optional_parameter_list ')' '{' function_statements '}' {
+			$$ = ast_node_create_function_defn($2, $4, $7, @1.first_line, @1.first_column);
+    }
+		;
+
+class_defn_statement
+    : T_CLASS class_name '{' class_statements '}' {
+			$$ = ast_node_create_class_defn($2, $4, @1.first_line, @1.first_column);
     }
     ;
 

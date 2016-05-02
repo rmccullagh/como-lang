@@ -110,7 +110,7 @@ static void ast_pretty_print(ast_node *p, size_t indent)
 		break;
 		case AST_NODE_TYPE_NEW:
 			printf("(new ");
-			ast_pretty_print(p->u1.new_node.expression, indent);
+			ast_pretty_print(p->u1.new_node.name, indent);
 			printf(")");
 		break;
 		case AST_NODE_TYPE_NUMBER:
@@ -158,6 +158,13 @@ static void ast_pretty_print(ast_node *p, size_t indent)
 			ast_pretty_print(p->u1.function_defn_node.parameters, indent);
 			printf("\n");
 			ast_pretty_print(p->u1.function_defn_node.body, indent);
+			printf(")");
+			indent = indent > 0 ? indent- 1 : 0;
+		}
+		break;
+		case AST_NODE_TYPE_CLASS_DEFN: {
+			printf("(class ");
+			ast_pretty_print(p->u1.class_defn_node.name, indent);
 			printf(")");
 			indent = indent > 0 ? indent- 1 : 0;
 		}

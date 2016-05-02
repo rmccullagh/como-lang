@@ -1,8 +1,13 @@
 class Object
 {
-	func Object(name) {
-		this.name = name;
+	func Object(self) {
+		self.name = name;
+	}
+	func getName(self) {
+		return self.name;
 	}
 }
 
 obj = new Object("Ryan");
+
+obj.getName(obj);

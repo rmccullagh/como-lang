@@ -11,6 +11,7 @@
 #define COMO_TYPE_IS_READONLY (1 << 4)
 #define COMO_TYPE_IS_SEALED (1 << 5)
 #define COMO_TYPE_IS_CLASS  (1 << 6)
+#define COMO_TYPE_IS_INSTANCE (1 << 7)
 
 typedef struct como_object como_object;
 typedef como_object *(*como_type_method)(como_object *, Object *);
@@ -35,6 +36,7 @@ como_object *como_type_new_int_object(long);
 como_object *como_type_new_double_object(double);
 como_object *como_type_new_function_object(como_object *, Object *);
 como_object *como_type_new_undefined_object(void);
-como_object *como_type_new_instance(const char *, Object *);
+como_object *como_type_new_class(void);
+como_object *como_type_new_instance(void);
 
 #endif

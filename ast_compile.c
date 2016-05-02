@@ -127,7 +127,6 @@ static como_object *como_do_call(ast_node *p)
 		if(O_TYPE(fimpl) != IS_POINTER) {
 			como_error_noreturn("object container type was not IS_POINTER\n");
 		}
-		cg->current_object = callablevar;
 		ast_node *fn = (ast_node *)O_PTVAL(fimpl);
 		Object *fnsymtab = newMap(2);
 		if(fn->type == AST_NODE_TYPE_FUNC_DEFN) {
@@ -210,7 +209,6 @@ static como_object *como_do_call(ast_node *p)
 		cg->context = NULL;
 		objectDestroy(fnsymtab);
 		cg->retval = NULL;
-		cg->current_object = NULL;
 	}
 	return retval;
 }
@@ -261,9 +259,52 @@ static como_object *como_create_anon_func(ast_node *p)
 static como_object *como_do_create_instance(ast_node *p)
 {
 	assert(p->type == AST_NODE_TYPE_NEW);
-	ast_node *expr = p->u1.new_node.expression;
-	assert(expr->type == AST_NODE_TYPE_CALL);
-	return ex(expr);
+	ast_node *name = p->u1.new_node.name;
+	assert(name->type == AST_NODE_TYPE_ID);
+	como_debug("creating instance of type %s\n", name->u1.id_node.name);
+	como_object *type = ex(name);
+
+	if(!(type->flags & COMO_TYPE_IS_CLASS)) {
+		como_error_noreturn("Can't instantiate '%s' because it is not a class (%d:%d)\n",
+				name->u1.id_node.name, p->lineno, p->colno);
+	}
+
+	como_object *instance = como_type_new_instance();
+	instance->type->properties = type->type->properties;
+	instance->self = type;
+	instance->value = type->value;
+	return instance;
+}
+
+
+static como_object *como_do_create_class(ast_node *p)
+{
+	assert(p->type == AST_NODE_TYPE_CLASS_DEFN);
+	ast_node_class_defn defn = p->u1.class_defn_node;
+	assert(defn.name->type == AST_NODE_TYPE_ID);
+	const char *id = defn.name->u1.id_node.name;
+	como_debug("defining class '%s'\n", id);
+	assert(defn.statements->type == AST_NODE_TYPE_STATEMENT_LIST);
+	ast_node_statements stmts = defn.statements->u1.statements_node;
+	size_t i;
+	como_object *classdef = como_type_new_class();
+	Object *methods = newMap(2);
+	for(i = 0; i < stmts.count; i++) {
+		ast_node *node = stmts.statement_list[i];
+		assert(node->type == AST_NODE_TYPE_FUNC_DEFN);
+		const char *fname = node->u1.function_defn_node.name->u1.id_node.name;
+		como_debug("defining %s.%s\n", id, fname);
+		Object *builtin_optr = newPointer((void *)node);
+		O_MRKD(builtin_optr) = COMO_TYPE_IS_OBJECT;
+		como_object *container = como_type_new_function_object(NULL, builtin_optr);
+		container->self = classdef;
+		mapInsertEx(methods, fname, builtin_optr);
+	}
+	classdef->type->properties = methods;
+	Object *value = newPointer((void *)classdef);
+	O_MRKD(value) = COMO_TYPE_IS_OBJECT;
+	mapInsertEx(cg->symbol_table, id, value);
+	return classdef;
 }
 
 static como_object* ex(ast_node* p)
@@ -274,6 +315,9 @@ static como_object* ex(ast_node* p)
 	switch(p->type) {
 		default:
 			como_error_noreturn("invalid ast.node_type\n");
+		break;
+		case AST_NODE_TYPE_CLASS_DEFN:
+			return como_do_create_class(p);
 		break;
 		case AST_NODE_TYPE_NEW:
 			return como_do_create_instance(p);

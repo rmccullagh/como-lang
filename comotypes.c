@@ -71,15 +71,28 @@ como_object *como_type_new_undefined_object(void)
 	return o;
 }
 
-como_object *como_type_new_instance(const char *name, Object *props)
+como_object *como_type_new_class(void)
 {
 	como_object *o = malloc(sizeof(como_object));
 	o->self = o;
 	o->value = newNull();
 	o->flags = COMO_TYPE_IS_OBJECT|COMO_TYPE_IS_CLASS;
 	o->type = malloc(sizeof(como_type));
-	o->type->name = name;
-	o->type->properties = props;
+	o->type->name = "Class";
+	o->type->properties = NULL;
+	o->type->flags = 0;
+	return o;
+}
+
+como_object *como_type_new_instance(void)
+{
+	como_object *o = malloc(sizeof(como_object));
+	o->self = o;
+	o->value = newNull();
+	o->flags = COMO_TYPE_IS_OBJECT|COMO_TYPE_IS_INSTANCE;
+	o->type = malloc(sizeof(como_type));
+	o->type->name = "Instance";
+	o->type->properties = NULL;
 	o->type->flags = 0;
 	return o;
 }
