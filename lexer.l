@@ -58,6 +58,7 @@ A		[a-zA-Z_0-9]
 %%
 
 {WHITE_SPACE}	  { /* Skipping Blanks Today */ }
+"class"         { return T_CLASS;             }
 "func"          { return T_FUNC;              }
 "return"        { return T_RETURN;            }
 "new"           { return T_NEW;               }

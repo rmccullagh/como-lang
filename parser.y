@@ -44,6 +44,7 @@ typedef void* yyscan_t;
 	ast_node* ast;
 }
 
+%token T_CLASS
 %token T_FUNC
 %token T_RETURN
 %token T_NEW

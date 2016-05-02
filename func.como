@@ -1,14 +1,8 @@
-func Object(name)
+class Object
 {
-	return name;
+	func Object(name) {
+		this.name = name;
+	}
 }
 
-Object.toString = func(self) {
-	return "Object";
-};
-
-Object.set = func(key, value) {
-	return 10 + 10;
-};
-
-age = Object.set(1, 1, 2);
+obj = new Object("Ryan");

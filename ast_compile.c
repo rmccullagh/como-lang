@@ -16,6 +16,7 @@
 */
 
 #include <stdlib.h>
+#include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <object.h>
@@ -126,6 +127,7 @@ static como_object *como_do_call(ast_node *p)
 		if(O_TYPE(fimpl) != IS_POINTER) {
 			como_error_noreturn("object container type was not IS_POINTER\n");
 		}
+		cg->current_object = callablevar;
 		ast_node *fn = (ast_node *)O_PTVAL(fimpl);
 		Object *fnsymtab = newMap(2);
 		if(fn->type == AST_NODE_TYPE_FUNC_DEFN) {
@@ -208,6 +210,7 @@ static como_object *como_do_call(ast_node *p)
 		cg->context = NULL;
 		objectDestroy(fnsymtab);
 		cg->retval = NULL;
+		cg->current_object = NULL;
 	}
 	return retval;
 }
@@ -258,7 +261,9 @@ static como_object *como_create_anon_func(ast_node *p)
 static como_object *como_do_create_instance(ast_node *p)
 {
 	assert(p->type == AST_NODE_TYPE_NEW);
-	return NULL;
+	ast_node *expr = p->u1.new_node.expression;
+	assert(expr->type == AST_NODE_TYPE_CALL);
+	return ex(expr);
 }
 
 static como_object* ex(ast_node* p)
@@ -311,6 +316,9 @@ static como_object* ex(ast_node* p)
 					}
 				}
 			} else {
+				if(strcmp(p->u1.id_node.name, "this") == 0) {
+					return cg->current_object;
+				}
 				value = mapSearchEx(cg->context, p->u1.id_node.name);
 				if(!value) {
 					value = mapSearchEx(cg->symbol_table, p->u1.id_node.name);
@@ -389,7 +397,6 @@ static como_object* ex(ast_node* p)
 				case AST_BINARY_OP_ASSIGN: {
 					if(p->u1.binary_node.left->type == AST_NODE_TYPE_ID) {
 						const char *left = p->u1.binary_node.left->u1.id_node.name;
-						como_debug("assign to id '%s'\n", left);
 						Object *v;
 						if(cg->context == NULL) {
 							v = mapSearch(cg->symbol_table, left);
@@ -426,7 +433,6 @@ static como_object* ex(ast_node* p)
 						return right;
 					} else {
 						como_object *primary = ex(p->u1.binary_node.left->u1.binary_node.left);
-						printf("%d\n", p->u1.binary_node.left->u1.binary_node.left->type);
 						const char *id = "<unknown>";
 						if(p->u1.binary_node.left->u1.binary_node.left->type == AST_NODE_TYPE_ID) {
 							id = p->u1.binary_node.left->u1.binary_node.left->u1.id_node.name;
