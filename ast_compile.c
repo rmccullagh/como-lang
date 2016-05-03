@@ -37,6 +37,7 @@ typedef struct compiler_context {
 } compiler_context;
 
 static compiler_context* cg;
+static como_object *como_do_create_class_builtin();
 
 static como_object *
 como_builtin_print(como_object *self, Object *args)
@@ -49,12 +50,36 @@ como_builtin_print(como_object *self, Object *args)
 
 	Array *_args = O_AVAL(args);
 
+	size_t retval = 0;
+
 	for(i = 0; i < _args->size; i++) {
 		Object *value = _args->table[i];
-		OBJECT_DUMP(value);
+		char *sval = objectToStringLength(value, &retval);
+		fprintf(stdout, "%s\n", sval);
+		free(sval);
 	}
 
-	return como_type_new_int_object(1);
+	return como_type_new_int_object((long)retval);
+}
+
+como_object *como_builtin_string(como_object *self, Object *args)
+{
+	if(self == NULL) {
+		como_error_noreturn("self is NULL\n");
+	}
+	
+	size_t i;
+	Array *_args = O_AVAL(args);
+	size_t len = 0;
+	como_object *retval;
+	for(i = 0; i < _args->size; i++) {
+		Object *value = _args->table[i];
+		char *sval = objectToStringLength(value, &len);
+		retval = como_type_new_string_object(sval);
+		free(sval);
+		break;
+	}
+	return retval;
 }
 
 static void setup_builtin(Object *symtable, const char *name, void *impl)
@@ -80,6 +105,8 @@ static void compiler_init(void)
 	cg->retval = NULL;
 	cg->current_object = NULL;
 	setup_builtin(cg->symbol_table, "print", como_builtin_print);
+	setup_builtin(cg->symbol_table, "String", como_builtin_string);
+	como_do_create_class_builtin();
 }
 
 static como_object *ex(ast_node *);
@@ -335,11 +362,11 @@ static como_object *como_do_create_instance(ast_node *p)
 	como_object *instance = como_type_new_instance();
 	instance->type->properties = copyObject(type->type->properties);
 	instance->self = instance;
-	instance->value = copyObject(type->value);
 
 	Object *selfv = newPointer((void *)instance);
 	O_MRKD(selfv) = COMO_TYPE_IS_OBJECT|COMO_TYPE_IS_SEALED;
 	mapInsertEx(instance->type->properties, "self", selfv);
+	instance->value = selfv;
 
 	Map *methods = O_MVAL(instance->type->properties);
 	uint32_t i;
@@ -369,15 +396,48 @@ static como_object *como_do_create_instance(ast_node *p)
 		if(!(ctor_impl->flags & COMO_TYPE_IS_CALLABLE)) {
 			como_error_noreturn("%s.%s was not callable\n", name->u1.id_node.name, name->u1.id_node.name);
 		}
-		ast_node *method = (ast_node *)O_PTVAL(ctor_impl->value);
-		assert(method->type == AST_NODE_TYPE_FUNC_DEFN);
-
-		(void)como_do_call_ex(ctor_impl->self, method, p->u1.new_node.arguments);	
+		if(!(ctor_impl->flags & COMO_TYPE_IS_BUILTIN)) {
+			ast_node *method = (ast_node *)O_PTVAL(ctor_impl->value);
+			assert(method->type == AST_NODE_TYPE_FUNC_DEFN);
+			(void)como_do_call_ex(ctor_impl->self, method, p->u1.new_node.arguments);	
+		} else {
+			como_type_method method = (como_type_method)O_FVAL(ctor_impl->value);
+			(void)method(ctor_impl->self, NULL);
+		}
 	}
 
 	return instance;
 }
 
+
+static como_object *como_builtin_map(como_object *self, Object *args)
+{
+	return self;
+}
+
+static como_object *como_do_create_class_builtin()
+{
+	como_debug("defining class 'Object'\n");
+	como_object *classdef = como_type_new_class();
+	classdef->self = classdef;
+	Object *methods = newMap(2);
+
+	Object *builtin_optr = newFunction(como_builtin_map);
+	como_object *container = como_type_new_function_object(NULL, builtin_optr);
+	container->self = container;
+	container->flags |= COMO_TYPE_IS_SEALED;
+	container->flags |= COMO_TYPE_IS_BUILTIN;
+	Object *fobj = newPointer((void *)container);
+	O_MRKD(fobj) = COMO_TYPE_IS_OBJECT;
+	mapInsertEx(methods, "Object", fobj);
+
+	classdef->type->properties = methods;
+	Object *value = newPointer((void *)classdef);
+	O_MRKD(value) = COMO_TYPE_IS_OBJECT;
+	classdef->value = value;
+	mapInsertEx(cg->symbol_table, "Object", value);
+	return classdef;
+}
 
 static como_object *como_do_create_class(ast_node *p)
 {
@@ -385,6 +445,11 @@ static como_object *como_do_create_class(ast_node *p)
 	ast_node_class_defn defn = p->u1.class_defn_node;
 	assert(defn.name->type == AST_NODE_TYPE_ID);
 	const char *id = defn.name->u1.id_node.name;
+	
+	if(mapSearchEx(cg->symbol_table, id) != NULL) {
+		como_error_noreturn("Can't redefine class '%s'\n", id);
+	}
+
 	como_debug("defining class '%s'\n", id);
 	assert(defn.statements->type == AST_NODE_TYPE_STATEMENT_LIST);
 	ast_node_statements stmts = defn.statements->u1.statements_node;
@@ -411,6 +476,62 @@ static como_object *como_do_create_class(ast_node *p)
 	classdef->value = value;
 	mapInsertEx(cg->symbol_table, id, value);
 	return classdef;
+}
+
+static int como_type_is_numeric(como_object *v)
+{
+	return v->value != NULL && (O_TYPE(v->value) == IS_DOUBLE || O_TYPE(v->value) == IS_LONG);
+}
+
+static como_object *como_do_binary_op_cmp(como_object *left, como_object *right)
+{
+	return como_type_new_int_object(objectValueCompare(left->value, right->value));
+}
+
+static como_object *como_do_binary_op_add(como_object *left, como_object *right)
+{
+	como_object *retval = NULL;
+	if(como_type_is_numeric(left)) {
+		if(!como_type_is_numeric(right)) {
+			como_error_noreturn("Unsupported operand '+' for '%s' and '%s'\n",
+					left->type->name, right->type->name);
+		}
+		if(O_TYPE(left->value) == IS_DOUBLE || O_TYPE(right->value) == IS_DOUBLE) {
+			double result;
+			double lval;
+			double rval;
+			if(O_TYPE(left->value) == IS_DOUBLE) {
+				lval = O_DVAL(left->value);
+			}	else {
+				lval = (double)(O_LVAL(left->value));
+			}
+			if(O_TYPE(right->value) == IS_DOUBLE) {
+				rval = O_DVAL(right->value);
+			}	else {
+				rval = (double)(O_LVAL(right->value));
+			}
+			result = lval + rval;
+			retval = como_type_new_double_object(result);
+		} else {
+			long result;
+			long lval = O_LVAL(left->value);
+			long rval = O_LVAL(right->value);
+			result = lval + rval;
+			retval = como_type_new_int_object(result);
+		}
+	} else if(O_TYPE(left->value) == IS_STRING) {
+		if(O_TYPE(right->value) != IS_STRING) {
+			como_error_noreturn("Can't concatenate '%s' and '%s' objects\n",
+					left->type->name, right->type->name);
+		}
+		Object *str = stringCat(left->value, right->value);
+		retval = como_type_new_string_object(O_SVAL(str)->value);
+		objectDestroy(str);
+	} else {
+			como_error_noreturn("Can't concatenate '%s' and '%s' objects\n",
+					left->type->name, right->type->name);
+	}
+	return retval;
 }
 
 static como_object* ex(ast_node* p)
@@ -519,7 +640,6 @@ static como_object* ex(ast_node* p)
 					if(!value) {
 						como_error_noreturn("%s is not defined\n", p->u1.binary_node.right->u1.id_node.name);
 					}
-
 					if(O_TYPE(value) != IS_POINTER) {
 						como_error_noreturn("value is not IS_POINTER\n");	
 					}
@@ -528,19 +648,19 @@ static como_object* ex(ast_node* p)
 					}
 
 					como_object *right = (como_object *)O_PTVAL(value);
-					como_debug("right is type %s\n", right->type->name);
 					return right;
 
 				} break;
 				case AST_BINARY_OP_ADD: {
 					como_object* left  = ex(p->u1.binary_node.left);
 					como_object* right = ex(p->u1.binary_node.right);
-					if(O_TYPE(left->value) == IS_LONG && O_TYPE(right->value) == IS_LONG) {
-						long sum = O_LVAL(left->value) + O_LVAL(right->value);
-						return como_type_new_int_object(sum);	
-					} else {
-						como_error_noreturn("AST_BINARY_OP_ADD: only works on longs\n");
-					}
+					return como_do_binary_op_add(left, right);
+				}
+				break;
+				case AST_BINARY_OP_CMP: {
+					como_object* left  = ex(p->u1.binary_node.left);
+					como_object* right = ex(p->u1.binary_node.right);
+					return como_do_binary_op_cmp(left, right);
 				}
 				break;
 				case AST_BINARY_OP_ASSIGN: {
@@ -579,6 +699,7 @@ static como_object* ex(ast_node* p)
 						}
 						return right;
 					} else {
+						assert(p->u1.binary_node.left->type == AST_NODE_TYPE_BIN_OP);
 						como_object *primary = ex(p->u1.binary_node.left->u1.binary_node.left);
 						const char *id = "<unknown>";
 						if(p->u1.binary_node.left->u1.binary_node.left->type == AST_NODE_TYPE_ID) {

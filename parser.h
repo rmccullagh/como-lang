@@ -60,10 +60,11 @@ typedef void* yyscan_t;
     T_FUNC = 259,
     T_RETURN = 260,
     T_NEW = 261,
-    T_NUM = 262,
-    T_DOUBLE = 263,
-    T_ID = 264,
-    T_STR_LIT = 265
+    T_CMP = 262,
+    T_NUM = 263,
+    T_DOUBLE = 264,
+    T_ID = 265,
+    T_STR_LIT = 266
   };
 #endif
 
@@ -80,7 +81,7 @@ union YYSTYPE
 	char* stringliteral;
 	ast_node* ast;
 
-#line 84 "parser.h" /* yacc.c:1909  */
+#line 85 "parser.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

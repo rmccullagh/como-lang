@@ -22,6 +22,21 @@
 #include "ast.h"
 #include "globals.h"
 
+
+static const char *const ast_type_str[] = {
+	"AST_NODE_TYPE_NUMBER", "AST_NODE_TYPE_STRING",
+	"AST_NODE_TYPE_ID", "AST_NODE_TYPE_DOUBLE",
+	"AST_NODE_TYPE_STATEMENT_LIST", "AST_NODE_TYPE_BIN_OP",
+	"AST_NODE_TYPE_CALL", "AST_NODE_TYPE_FUNC_DEFN",
+	"AST_NODE_TYPE_RETURN", "AST_NODE_TYPE_NEW",
+	"AST_NODE_TYPE_ANON_FUNC", "AST_NODE_TYPE_CLASS_DEFN"
+};
+
+const char *ast_node_pretty_type(ast_node_type i)
+{
+	return ast_type_str[(unsigned int)i];
+}
+
 ast_node *ast_node_create_new(ast_node *name, ast_node *args, int lineno, int colno)
 {
 	ast_node* retval = malloc(sizeof(ast_node));

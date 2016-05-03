@@ -1,0 +1,25 @@
+
+debug: ast_compile.c:como_do_create_class_builtin:421: defining class 'Object'
+
+debug: ast_compile.c:como_do_create_class:454: defining class 'Container'
+
+debug: ast_compile.c:como_do_create_class:465: defining Container.Container
+
+debug: ast_compile.c:como_do_create_instance:354: creating instance of type Container
+
+debug: ast_compile.c:como_do_create_instance:354: creating instance of type Object
+
+debug: ast_compile.c:ex:639: right is AST_NODE_TYPE_ID
+
+debug: ast_compile.c:ex:658: Type of the primary in the dot operation: Instance
+
+ast_compile.c:ex:666: fatal: key is not defined
+(class (id Container))
+(= (id container) (new (id Container)))
+(= (id prop_name) (string 'key'))
+(= (afa (id container) (id prop_name)) (string 'world'))
+(call
+ (id print)  (afa (id container) (id prop_name)))
+(call
+ (id print)  (. (id container) (id key)))
+world

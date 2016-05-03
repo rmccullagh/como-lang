@@ -2,6 +2,7 @@
 	fprintf(stderr, "%s:%d: O_TYPE:%d\n", __func__, __LINE__, O_TYPE(o)); \
 } while(0)
 
+
 static void como_debug_ex(const char *f,
 		const char *fn, int ln, const char* format, ...)
 {
@@ -23,7 +24,7 @@ static void como_error_noreturn_ex(const char *f,
 	va_start (args, format);
 	vfprintf (stderr, format, args);
 	va_end (args);
-	fflush(stderr);	
+	fflush(stderr);
 	exit(1);
 }
 

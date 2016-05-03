@@ -85,8 +85,14 @@ static const char * ast_binary_op_string(ast_node_binary n)
 		case AST_BINARY_OP_ASSIGN:
 			return "=";
 		break;	
+		case AST_BINARY_OP_CMP:
+			return "==";
+		break;	
 		case AST_BINARY_OP_DOT:
 			return ".";
+		break;
+		default:
+			return "afa";
 		break;	
 	}
 

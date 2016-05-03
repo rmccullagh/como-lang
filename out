@@ -1,0 +1,9 @@
+(class (id Container))
+(= (id container) (new (id Container)))
+(= (id prop_name) (string 'key'))
+(= (afa (id container) (id prop_name)) (string 'world'))
+(call
+ (id print)  (afa (id container) (id prop_name)))
+(call
+ (id print)  (. (id container) (id key)))
+world

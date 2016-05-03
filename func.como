@@ -1,21 +1,12 @@
 class Object
 {
-	func Object(container) {
-		self.setContainer(container);
-	}
-	func setContainer(a) {
-		self.container = a;
-		return self;
-	}
-}
-
-class Container
-{
-	func Container(name) {
+	func Object(name) {
 		self.name = name;
 	}
 }
 
-obj = new Object(new Container("object"));
+
+obj = new Object("Array");
+
 
 

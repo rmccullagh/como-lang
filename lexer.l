@@ -58,11 +58,11 @@ A		[a-zA-Z_0-9]
 %%
 
 {WHITE_SPACE}	  { /* Skipping Blanks Today */ }
-"namespace"     { return T_NAMESPACE;         }
 "class"         { return T_CLASS;             }
 "func"          { return T_FUNC;              }
 "return"        { return T_RETURN;            }
 "new"           { return T_NEW;               }
+"=="						{ return T_CMP;								}
 {L}{A}*         {
 	size_t len = strlen(yytext);
 	yylval->id = malloc(len + 1);

@@ -1,0 +1,9 @@
+class Container {
+	func Container(name) {
+		self.name = name;
+	}
+}
+
+container = new Container("Animal");
+
+print(container.a);

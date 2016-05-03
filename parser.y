@@ -48,7 +48,7 @@ typedef void* yyscan_t;
 %token T_FUNC
 %token T_RETURN
 %token T_NEW
-%token T_NAMESPACE;
+%token T_CMP
 %token '.'
 %token '='
 %token '+'
@@ -65,7 +65,7 @@ typedef void* yyscan_t;
 %type <ast> parameter_list parameter
 %type <ast> function_defn_statement function_statements class_statements class_statement
 %type <ast> return_statement optional_expression function_statement
-
+%nonassoc T_CMP
 %left '+'
 
 %%
@@ -133,6 +133,9 @@ value
 
 expression
     : primary                     { $$ = $1;                               }
+		| expression T_CMP expression {
+        $$ = ast_node_create_binary_op(AST_BINARY_OP_CMP, $1, $3, @1.first_line, @1.first_column);
+		}
     | expression '+' expression   {
         $$ = ast_node_create_binary_op(AST_BINARY_OP_ADD, $1, $3, @1.first_line, @1.first_column);
     }

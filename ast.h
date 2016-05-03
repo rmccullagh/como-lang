@@ -31,14 +31,25 @@ typedef enum {
 	AST_NODE_TYPE_STATEMENT_LIST, AST_NODE_TYPE_BIN_OP,
 	AST_NODE_TYPE_CALL, AST_NODE_TYPE_FUNC_DEFN,
 	AST_NODE_TYPE_RETURN, AST_NODE_TYPE_NEW,
-	AST_NODE_TYPE_ANON_FUNC, AST_NODE_TYPE_CLASS_DEFN
+	AST_NODE_TYPE_ANON_FUNC, AST_NODE_TYPE_CLASS_DEFN,
 } ast_node_type;
 
 typedef enum {
+	AST_SEL_STMT_WHILE,
+} ast_selection_statement_type;
+
+typedef enum {
 	AST_BINARY_OP_ADD, AST_BINARY_OP_ASSIGN, AST_BINARY_OP_DOT,
+	AST_BINARY_OP_CMP, AST_BINARY_OP_DIM,
 } ast_binary_op_type;
 
 typedef struct ast_node ast_node;
+
+typedef struct {
+	ast_selection_statement_type type;
+	ast_node *expression;
+	ast_node *statements;
+} ast_node_selection_statement;
 
 typedef struct {
 	ast_node *name;
@@ -130,8 +141,8 @@ extern ast_node *ast_node_create_call(ast_node *, ast_node *, int, int);
 /*
  * These functions are defined in other files outside ast.c
  */
+extern const char *ast_node_pretty_type(ast_node_type);
 extern void ast_node_free(ast_node *);
 extern void ast_node_dump_tree(ast_node *);
 extern void ast_compile(const char *, ast_node *, int);
-
 #endif

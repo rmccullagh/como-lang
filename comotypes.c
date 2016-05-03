@@ -5,10 +5,11 @@
 
 #include "comotypes.h"
 
+
 como_object *como_type_new_string_object(const char *sval)
 {
 	como_object *o = malloc(sizeof(como_object));
-	o->self = o;
+	o->self = o;		
 	o->value = newString(sval == NULL ? "" : sval);
 	o->flags = 0;
 	o->type = malloc(sizeof(como_type));
