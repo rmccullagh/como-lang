@@ -22,19 +22,17 @@
 #include <object.h>
 #include <stdarg.h>
 
-/*
- * http://epaperpress.com/lexandyacc/
- */
 typedef enum {
 	AST_NODE_TYPE_NUMBER, AST_NODE_TYPE_STRING,
 	AST_NODE_TYPE_ID, AST_NODE_TYPE_DOUBLE,
 	AST_NODE_TYPE_STATEMENT_LIST, AST_NODE_TYPE_BIN_OP,
 	AST_NODE_TYPE_IF, AST_NODE_TYPE_WHILE, AST_NODE_TYPE_FUNC_DECL, 
 	AST_NODE_TYPE_CALL, AST_NODE_TYPE_RET, AST_NODE_TYPE_PRINT,
+	AST_NODE_TYPE_VAR, AST_NODE_TYPE_ASSIGN,
 } ast_node_type;
 
 typedef enum {
-	AST_BINARY_OP_ADD, AST_BINARY_OP_MINUS, AST_BINARY_OP_ASSIGN,
+	AST_BINARY_OP_ADD, AST_BINARY_OP_MINUS,
 	AST_BINARY_OP_TIMES, AST_BINARY_OP_DIV, AST_BINARY_OP_CMP,
 	AST_BINARY_OP_REM, AST_BINARY_OP_DOT, AST_BINARY_OP_NOT_EQUAL,
 	AST_BINARY_OP_LESS_THAN, AST_BINARY_OP_GREATER_THAN,
@@ -46,6 +44,11 @@ typedef struct {
 	char* name;
 	size_t length;
 } ast_node_id;
+
+typedef struct {
+	char* name;
+	size_t length;
+} ast_node_var;
 
 typedef struct ast_node_statements ast_node_statements;
 
@@ -60,6 +63,11 @@ typedef struct {
 	ast_node* left;
 	ast_node* right;
 } ast_node_binary;
+
+typedef struct {
+	ast_node *name;
+	ast_node *expression;	
+} ast_node_assign;
 
 typedef struct {
 	ast_node* condition;
@@ -107,15 +115,19 @@ struct ast_node {
 		ast_node_id		      id_node;
 		ast_node_statements	statements_node;
 		ast_node_binary		  binary_node;
+		ast_node_var				var_node;
 		ast_node_if		      if_node;
 		ast_node_while		  while_node;
 		ast_node_function   function_node;
 		ast_node_call       call_node;
 		ast_node_return		  return_node;
 		ast_node_print		  print_node;
+		ast_node_assign     assign_node;
 	} u1;
 };
 
+extern ast_node* ast_node_create_assign(ast_node *, ast_node *);
+extern ast_node* ast_node_create_var(const char *);
 extern ast_node* ast_node_create_number(long value);
 extern ast_node* ast_node_create_double(double value);
 extern ast_node* ast_node_create_statement_list(size_t count, ...);

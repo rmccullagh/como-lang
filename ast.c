@@ -22,6 +22,15 @@
 #include "ast.h"
 #include "globals.h"
 
+ast_node* ast_node_create_assign(ast_node *name, ast_node *expression)
+{
+	ast_node* retval = malloc(sizeof(ast_node));
+	retval->type = AST_NODE_TYPE_ASSIGN;
+	retval->u1.assign_node.name = name;
+	retval->u1.assign_node.expression = expression;
+	return retval;
+}
+
 ast_node* ast_node_create_number(long value)
 {
 	ast_node* retval = malloc(sizeof(ast_node));
@@ -94,7 +103,6 @@ ast_node* ast_node_create_binary_op(ast_binary_op_type type, ast_node* left, ast
 	retval->u1.binary_node.type = type;
 	retval->u1.binary_node.left = left;
 	retval->u1.binary_node.right = right;
-
 	return retval;
 }
 
@@ -106,6 +114,17 @@ ast_node* ast_node_create_id(const char* name)
 	retval->u1.id_node.length = len;
 	retval->u1.id_node.name = malloc(len + 1);
 	memcpy(retval->u1.id_node.name, name, len + 1);
+	return retval;
+}
+
+ast_node* ast_node_create_var(const char* name)
+{
+	ast_node* retval = malloc(sizeof(ast_node));
+	retval->type = AST_NODE_TYPE_VAR;
+	size_t len = strlen(name);
+	retval->u1.var_node.length = len;
+	retval->u1.var_node.name = malloc(len + 1);
+	memcpy(retval->u1.var_node.name, name, len + 1);
 	return retval;
 }
 

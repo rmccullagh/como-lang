@@ -24,26 +24,19 @@
 #include "parser.h"
 #include "lexer.h"
 
-static como_global globals;
+extern int yyparse(ast_node** , yyscan_t );
 
-static void init_globals(void) {
-	globals.filename = NULL;
-	globals.filename_length = 0;
+struct como_frame {
+	Object *cf_locals;	/* variable names identified by string, and index to values */
+	Object *cf_values;
+	Object *cf_constants;
+	Object **cf_value_stack;
+	Object **cf_stacktop;
 };
 
-static void set_file_name(const char* name) {
-	size_t len = strlen(name);
-	globals.filename = malloc(len + 1);
-	memcpy(globals.filename, name, len);
-	globals.filename[len] = '\0';
-	globals.filename_length = len;	
-}
+struct como_block {
 
-const char* get_file_name(void) {
-	return globals.filename;
-}
-
-int yyparse(ast_node** ast, yyscan_t scanner);
+};
 
 ast_node* como_ast_create(const char* text)
 {
@@ -75,48 +68,28 @@ ast_node* como_ast_create(const char* text)
 	} \
 } while(0)
 
-static const char * ast_binary_op_string(ast_node_binary n)
+static inline void ast_binary_op_emit(ast_binary_op_type n)
 {
-	switch(n.type) {
+	switch(n) {
 		case AST_BINARY_OP_ADD:
-			return "+";
+			fprintf(stdout, "ADD\n");	
 		break;	
 		case AST_BINARY_OP_MINUS:
-			return "-";
-		break;	
-		case AST_BINARY_OP_ASSIGN:
-			return "=";
+			fprintf(stdout, "SUB\n");
 		break;	
 		case AST_BINARY_OP_TIMES:
-			return "*";
+			fprintf(stdout, "MUL\n");
 		break;	
 		case AST_BINARY_OP_DIV:
-			return "/";
+			fprintf(stdout, "DIV\n");
 		break;	
-		case AST_BINARY_OP_CMP:
-			return "==";
+		default :
+			fprintf(stdout, "not implemented\n");
 		break;
-		case AST_BINARY_OP_REM:
-			return "%";
-		break;	
-		case AST_BINARY_OP_DOT:
-			return ".";
-		break;	
-		case AST_BINARY_OP_NOT_EQUAL:
-			return "!=";
-		break;	
-		case AST_BINARY_OP_LESS_THAN:
-			return "<";
-		break;	
-		case AST_BINARY_OP_GREATER_THAN:
-			return ">";
-		break;	
 	}
-
-	return "<null>";
 }
 
-static void ast_pretty_print(ast_node *p, size_t indent);
+static void ast_pretty_print(ast_node *, size_t);
 
 static void ast_pretty_print(ast_node *p, size_t indent)
 {
@@ -127,33 +100,33 @@ static void ast_pretty_print(ast_node *p, size_t indent)
 
 	switch(p->type) {
 		case AST_NODE_TYPE_NUMBER:
-			printf("(int %ld)", p->u1.number_value);
+			printf("LOAD_CONST     %ld\n", p->u1.number_value);
 		break;
 		case AST_NODE_TYPE_DOUBLE:
-			printf("(double %.*G)", DBL_DIG, p->u1.double_value);	
+			printf("LOAD_CONST     %.*G\n", DBL_DIG, p->u1.double_value);	
 		break;
 		case AST_NODE_TYPE_STRING:
-			printf("(string '%s')", p->u1.string_value.value);
+			printf("LOAD_CONST     %s\n", p->u1.string_value.value);
+		break;
+		case AST_NODE_TYPE_VAR:
+			printf("LOAD_NAME      %s\n", p->u1.var_node.name);
 		break;
 		case AST_NODE_TYPE_ID:
-			printf("(id %s)", p->u1.id_node.name);
+			printf("LOAD_NAME      %s\n", p->u1.id_node.name);
 		break;
 		case AST_NODE_TYPE_STATEMENT_LIST: {
-			INDENT_LOOP(indent);
 			size_t i;
 			for(i = 0; i < p->u1.statements_node.count; i++) {
 					ast_pretty_print(p->u1.statements_node.statement_list[i], indent);
-					if(!indent) {
-						printf("\n");
-					}
 			}		
 		} break;
+		case AST_NODE_TYPE_ASSIGN:
+			ast_pretty_print(p->u1.assign_node.expression, indent);
+			printf("STORE_NAME     %s\n", p->u1.assign_node.name->u1.var_node.name);
+		break;
 		case AST_NODE_TYPE_BIN_OP:
-			printf("(%s ", ast_binary_op_string(p->u1.binary_node));
-			ast_pretty_print(p->u1.binary_node.left, indent);
-			printf(" ");
 			ast_pretty_print(p->u1.binary_node.right, indent);
-			printf(")");
+			ast_binary_op_emit(p->u1.binary_node.type);
 		break;
 		case AST_NODE_TYPE_IF:
 			printf("AST_NODE_TYPE_IF\n");
@@ -165,23 +138,10 @@ static void ast_pretty_print(ast_node *p, size_t indent)
 			printf("AST_NODE_TYPE_FUNC_DECL\n");
 		break;
 		case AST_NODE_TYPE_CALL: {
-			printf("(call\n");
-			indent++;
-			INDENT_LOOP(indent);
 			ast_node_call call_node = p->u1.call_node;
 			ast_pretty_print(call_node.id, indent);
 			ast_node *args = call_node.arguments;
 			ast_pretty_print(args, indent);
-			/*
-			if(args->u1.statements_node.count) {
-				printf("\n");
-				INDENT_LOOP(indent);
-				size_t i;
-				for(i = 0; i < args->u1.statements_node.count; i++) {
-					ast_pretty_print(args->u1.statements_node.statement_list[i], indent);
-				}
-			}*/
-			--indent;
 			printf(")");
 		}
 		break;
@@ -208,17 +168,13 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	init_globals();
-
-	set_file_name(argv[1]);
-
 	ast_node* program = como_ast_create(text);
 
 	free(text);
 
 	ast_pretty_print(program, 0);
 
-	ast_compile(argv[1], program);
+	//ast_compile(argv[1], program);
 	//printf("%d\n", program->type);
 
 	return 0;

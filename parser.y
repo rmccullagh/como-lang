@@ -7,10 +7,11 @@
 
 #define YYERROR_VERBOSE
 
-int yyerror(YYLTYPE * lvalp, ast_node** ast, yyscan_t scanner, const char* msg)
+int yyerror(YYLTYPE * lvalp, ast_node** ast, 
+	yyscan_t scanner, const char* msg)
 {
 	printf("parse error: %s in file \"%s\" on line %d:%d\n", 
-      msg, "<file>", lvalp->first_line, lvalp->first_column);
+      msg, "<file>", yyget_lineno(scanner), lvalp->first_column);
 	exit(1);
 }
 
@@ -60,11 +61,10 @@ typedef void* yyscan_t;
 %token <stringliteral> T_STR_LIT
 
 %type <ast> expression statement expression_statement statement_list
-%type <ast> value
+%type <ast> value assignment_statement
 %type <ast> if_statement_without_else selection_statement
 %type <ast> optional_argument_list argument_list argument
 
-%precedence '='
 %nonassoc T_CMP T_NOT_EQUAL
 %nonassoc '<' '>'
 %left '-' '+'
@@ -100,11 +100,6 @@ expression
     }
     | expression '>' expression {
         $$ = ast_node_create_binary_op(AST_BINARY_OP_GREATER_THAN, $1, $3);
-    }
-    | T_ID       '=' expression   { 
-        $$ = ast_node_create_binary_op(AST_BINARY_OP_ASSIGN,
-               ast_node_create_id($1), $3);
-             free($1);
     }
     | T_ID       '(' optional_argument_list ')' {
         $$ = ast_node_create_call(ast_node_create_id($1), $3, 
@@ -148,7 +143,15 @@ argument
 statement
     : expression_statement        { $$ = $1;                                }
     | selection_statement         { $$ = $1;                                }
+		| assignment_statement        { $$ = $1;                                }
     ;
+
+assignment_statement
+		:  T_ID  '=' expression ';'  { 
+        $$ = ast_node_create_assign(ast_node_create_var($1), $3);
+        free($1);
+    }
+		;
 
 statement_list
     : %empty                      { $$ = ast_node_create_statement_list(0); } 

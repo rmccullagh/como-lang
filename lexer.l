@@ -22,24 +22,6 @@
 #include "globals.h"
 #include "ast.h"
 #include "parser.h"
-
-static void update_loc(YYLTYPE *loc, char* text)
-{
-	loc->first_line = loc->last_line;
-	loc->first_column = loc->last_column;
-	int i;
-	for(i = 0; text[i] != '\0'; i++) {
-		if(text[i] == '\n') {
-			loc->last_line++;
-			loc->last_column = 0;
-		} else {
-			loc->last_column++;
-		}
-	}
-}
-
-#define YY_USER_ACTION update_loc(yylloc, yytext);	
-
 %}
 
 %option outfile="lexer.c" header-file="lexer.h"
@@ -49,11 +31,9 @@ static void update_loc(YYLTYPE *loc, char* text)
 %option bison-bridge
 %option bison-locations
 
-D       [0-9]
-NUM 		[0-9]+
-WHITE_SPACE	[ \r\n\t]*
+D   [0-9]
 L		[a-zA-Z_]
-A		[a-zA-Z_0-9]
+A		[_0-9]
 
 %%
 
@@ -61,24 +41,26 @@ A		[a-zA-Z_0-9]
 "else"          { return T_ELSE;              }
 "!="            { return T_NOT_EQUAL;         }
 "=="            { return T_CMP;               }
-{WHITE_SPACE}	  { /* Skipping Blanks Today */ }
-{L}{A}*         {
+{L}+{A}*         {
 	size_t len = strlen(yytext);
 	yylval->id = malloc(len + 1);
-	memcpy(yylval->id, yytext, len + 1);
+	memcpy(yylval->id, yytext, len);
+	yylval->id[len] = '\0';
 	return T_ID;
 }
-{NUM}		        { yylval->number = strtol(yytext, NULL, 10); return T_NUM; }
+{D}+		      { yylval->number = strtol(yytext, NULL, 10); return T_NUM; }
 {D}*"."{D}+     { yylval->dval = strtod(yytext, NULL); return T_DOUBLE;    }
 
 L?\"(\\.|[^\\"])*\"	{ 
 	size_t len = strlen(yytext);
 	yylval->stringliteral = malloc((len -2) + 1);
-	memcpy(yylval->id, yytext + 1, len - 2);
-	yylval->id[len - 2] = '\0';
+	memcpy(yylval->stringliteral, yytext + 1, len - 2);
+	yylval->stringliteral[len - 2] = '\0';
 	return T_STR_LIT;
 }
-.		{ return yytext[0];				     }
+[ \t\n]+ 	/* eat white */
+
+.	{ return yytext[0];				     }
 
 %%
 

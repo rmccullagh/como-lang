@@ -557,20 +557,6 @@ static Object* ex(ast_node* p)
 						}
 					}
 				} break;
-				case AST_BINARY_OP_ASSIGN: {
-					const char* id = p->u1.binary_node.left->u1.id_node.name;
-					Object* right = ex(p->u1.binary_node.right);					
-					if(cg->current_symbol_table == NULL) {
-						mapInsert(cg->symbol_table, id, right);
-					} else {
-						mapInsert(cg->current_symbol_table, id, right);
-					}
-					
-					Object* ret = copyObject(right);
-					objectDestroy(right);
-
-					return ret;
-				} break;
 			}	
 		} break;
 	}
