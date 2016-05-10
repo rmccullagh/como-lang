@@ -143,7 +143,6 @@ static void ast_pretty_print(ast_node *p, size_t indent)
 			ast_pretty_print(call_node.id, indent);
 			ast_node *args = call_node.arguments;
 			ast_pretty_print(args, indent);
-			printf(")");
 		}
 		break;
 		case AST_NODE_TYPE_RET:
