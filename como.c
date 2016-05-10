@@ -125,6 +125,7 @@ static void ast_pretty_print(ast_node *p, size_t indent)
 			printf("STORE_NAME     %s\n", p->u1.assign_node.name->u1.var_node.name);
 		break;
 		case AST_NODE_TYPE_BIN_OP:
+			ast_pretty_print(p->u1.binary_node.left, indent);
 			ast_pretty_print(p->u1.binary_node.right, indent);
 			ast_binary_op_emit(p->u1.binary_node.type);
 		break;
