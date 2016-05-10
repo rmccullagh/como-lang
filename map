@@ -6,4 +6,4 @@ class Container {
 
 container = new Container("Animal");
 
-print(container.a);
+print(container.name);
