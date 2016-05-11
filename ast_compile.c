@@ -166,7 +166,6 @@ static void como_stack_push_ex(como_stack **stack, Object *call_info)
 	como_stack_push(stack, call_info);
 }
 
-
 static Object* ex(ast_node* p)
 {
 	if(!p)

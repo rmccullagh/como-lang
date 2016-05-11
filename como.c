@@ -172,9 +172,9 @@ int main(int argc, char** argv)
 
 	free(text);
 
-	ast_pretty_print(program, 0);
+	//ast_pretty_print(program, 0);
 
-	//ast_compile(argv[1], program);
+	ast_compile(argv[1], program);
 	//printf("%d\n", program->type);
 
 	return 0;
