@@ -32,14 +32,14 @@ como_module* load_module(const char* name)
 	handle = dlopen(name, RTLD_LAZY);
 
 	if(!handle) {
-		printf("%s\n", dlerror());
+		printf("%s:%s\n", __func__, dlerror());
 		return NULL;
 	}		
 
 	module_init = dlsym(handle, "module_init");
 
 	if((error = dlerror()) != NULL) {
-		printf("%s\n", error);
+		printf("%s:%s\n", __func__, error);
 		return NULL;
 	}
 	
@@ -52,7 +52,7 @@ como_module* load_module(const char* name)
 
 int main(void)
 {
-	como_module* mod_info = load_module("/home/this/como-src/ext.so");
+	como_module* mod_info = load_module("/home/ryanm/src/como-lang/ext.so");
 	size_t i;
 
 	if(!mod_info) {

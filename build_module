@@ -1,0 +1,2 @@
+#!/bin/sh
+gcc -Wall -Wextra module.c -o module -ldl
