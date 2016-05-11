@@ -5,4 +5,5 @@
 
 extern int object_value_is_less_than(Object *, Object *);
 extern int object_value_is_greater_than(Object *, Object *);
+extern int object_is_truthy(Object *);
 #endif

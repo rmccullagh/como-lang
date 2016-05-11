@@ -1586,7 +1586,7 @@ yyreduce:
   case 26:
 #line 150 "parser.y" /* yacc.c:1646  */
     { 
-        (yyval.ast) = ast_node_create_assign(ast_node_create_var((yyvsp[-3].id)), (yyvsp[-1].ast));
+        (yyval.ast) = ast_node_create_assign(ast_node_create_id((yyvsp[-3].id)), (yyvsp[-1].ast));
         free((yyvsp[-3].id));
     }
 #line 1593 "parser.c" /* yacc.c:1646  */

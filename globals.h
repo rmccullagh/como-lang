@@ -21,6 +21,8 @@
 #include <stddef.h>
 #include <object.h>
 
+#define COMO_DEBUG 1
+
 typedef struct como_global {
 	char* filename;
 	size_t filename_length;

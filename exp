@@ -1,1 +1,2 @@
-name = (10 + 4) * 20;
+total = (10 + 4) * 20;
+total2 = total + 1;

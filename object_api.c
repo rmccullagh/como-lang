@@ -2,6 +2,36 @@
 #include <string.h>
 #include "object_api.h"
 
+int object_is_truthy(Object *left)
+{
+		switch(O_TYPE(left)) {
+			case IS_NULL:
+				return 0;
+			break;
+			case IS_BOOL:
+				return O_BVAL(left) ? 1 : 0;
+			break;
+			case IS_LONG:
+				return O_LVAL(left) ? 1 : 0;
+			break;
+			case IS_DOUBLE:
+				return O_DVAL(left) ? 1 : 0;
+			break;
+			case IS_STRING:
+				return 1;
+			break;
+			case IS_FUNCTION:
+				return 1;
+			break;
+			case IS_POINTER:
+				return 1;
+			break;
+			default:
+				return 0;
+			break;	
+		}
+}
+
 int object_value_is_less_than(Object *left, Object *right)
 {
 	if(O_TYPE(left) != O_TYPE(right)) {

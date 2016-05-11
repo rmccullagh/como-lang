@@ -148,7 +148,7 @@ statement
 
 assignment_statement
 		:  T_ID  '=' expression ';'  { 
-        $$ = ast_node_create_assign(ast_node_create_var($1), $3);
+        $$ = ast_node_create_assign(ast_node_create_id($1), $3);
         free($1);
     }
 		;
