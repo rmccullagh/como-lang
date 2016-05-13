@@ -1,5 +1,10 @@
 obj = new Object();
 obj.name = "Ryan McCullagh";
-obj.age = 25;
+obj.twitterHandle = "@RyanMcCullagh";
+obj.year = 2016;
 
 print("name: " + obj.name);
+print("twitter: " + obj.twitterHandle);
+print("year: ");
+print(obj.year);
+
