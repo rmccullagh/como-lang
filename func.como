@@ -1,12 +1,5 @@
-class Object
-{
-	func Object(name) {
-		self.name = name;
-	}
-}
+obj = new Object();
+obj.name = "Ryan McCullagh";
+obj.age = 25;
 
-
-obj = new Object("Array");
-
-
-
+print("name: " + obj.name);
