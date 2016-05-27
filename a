@@ -1,0 +1,19 @@
+class a {
+	func a(b) {
+		self.b = b;
+		aa = 125;
+	}	
+}
+
+_a = new a(2);
+
+print(_a.b);
+
+
+class Foo {
+	func Foo(instance) {
+		self.instance = new Foo(1);
+	}
+}
+
+foo = new Foo(new Foo(1));
