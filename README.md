@@ -1,4 +1,4 @@
-# como como object meta oriented
+# COMO: como object meta oriented
 
 # even.como
 ```
@@ -29,4 +29,14 @@ func print_even(num)
 }
 
 print_even(4);
+```
+
+# range
+```
+func print_range(a, b) {
+	while(a <= b) {
+		print(a);
+		a = a + 1;
+	}
+}
 ```
