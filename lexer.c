@@ -916,13 +916,13 @@ YY_RULE_SETUP
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 75 "lexer.l"
-{ yylval->number = strtol(yytext, NULL, 10); return T_NUM;       }
+#line 76 "lexer.l"
+{ yylval->number = strtol(yytext, NULL, 10); return T_NUM; }
 	YY_BREAK
 case 12:
 /* rule 12 can match eol */
 YY_RULE_SETUP
-#line 77 "lexer.l"
+#line 78 "lexer.l"
 { 
 	size_t len = strlen(yytext);
 	if(len > 2U) {
@@ -939,12 +939,12 @@ YY_RULE_SETUP
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 90 "lexer.l"
+#line 91 "lexer.l"
 { return yytext[0];				     }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 92 "lexer.l"
+#line 93 "lexer.l"
 YY_FATAL_ERROR( "flex scanner jammed" );
 	YY_BREAK
 #line 951 "lexer.c"
@@ -2134,7 +2134,7 @@ void yyfree (void * ptr , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 92 "lexer.l"
+#line 93 "lexer.l"
 
 
 

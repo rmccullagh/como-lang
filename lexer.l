@@ -49,10 +49,10 @@ static void update_loc(YYLTYPE *loc, char* text)
 %option bison-bridge
 %option bison-locations
 
-NUM 		[0-9]+
 WHITE_SPACE	[ \r\n\t]*
 L		[a-zA-Z_]
 A		[a-zA-Z_0-9]
+D   [0-9]
 
 %%
 
@@ -72,7 +72,8 @@ A		[a-zA-Z_0-9]
 	memcpy(yylval->id, yytext, len + 1);
 	return T_ID;
 }
-{NUM}		        { yylval->number = strtol(yytext, NULL, 10); return T_NUM;       }
+
+{D}+		      { yylval->number = strtol(yytext, NULL, 10); return T_NUM; }
 
 L?\"(\\.|[^\\"])*\"	{ 
 	size_t len = strlen(yytext);

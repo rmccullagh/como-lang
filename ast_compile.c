@@ -428,6 +428,7 @@ static Object* ex(ast_node* p)
 					if(!left || !right) {
 						printf("%s: LEFT OR RIGHT is NULL, bailing out...for"
 							 "	AST_BINARY_OP_LTE\n", __func__);
+						dump_fn_call_stack();
 						exit(1);
 					} else {
 						int isLessThan = objectValueIsLessThan(left, right );
@@ -437,7 +438,7 @@ static Object* ex(ast_node* p)
 							if(objectValueCompare(left, right)) {
 								return newLong(1L);
 							} 
-							return newLong(0);
+							return newLong(0L);
 						}
 					}
 				}
@@ -448,6 +449,7 @@ static Object* ex(ast_node* p)
 
 					if(!left || !right) {
 						printf("%s: LEFT OR RIGHT is NULL, bailint out...\n", __func__);
+						dump_fn_call_stack();
 						exit(1);
 					} else {
 						return newLong(objectValueIsLessThan(left, right));
