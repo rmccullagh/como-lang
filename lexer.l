@@ -63,6 +63,7 @@ A		[a-zA-Z_0-9]
 "print"         { return T_PRINT;  }
 "return"        { return T_RETURN; }
 "=="            { return T_CMP;    }
+"<="            { return T_LTE;    }
 
 {WHITE_SPACE}	{ /* Skipping Blanks Today */ }
 {L}{A}*         {
@@ -75,10 +76,16 @@ A		[a-zA-Z_0-9]
 
 L?\"(\\.|[^\\"])*\"	{ 
 	size_t len = strlen(yytext);
-	yylval->stringliteral = malloc((len -2) + 1);
-	memcpy(yylval->id, yytext + 1, len - 2);
-	yylval->id[len - 2] = '\0';
-	return T_STR_LIT;
+	if(len > 2U) {
+		yylval->stringliteral = malloc((len -2) + 1);
+		memcpy(yylval->id, yytext + 1, len - 2);
+		yylval->id[len - 2] = '\0';
+		return T_STR_LIT;
+	} else {
+		yylval->stringliteral = malloc(1);
+		yylval->id[0] = '\0';
+		return T_STR_LIT;
+	}
 }
 .		{ return yytext[0];				     }
 

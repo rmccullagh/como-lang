@@ -60,6 +60,8 @@ typedef void* yyscan_t;
 } 
 
 %left T_CMP
+%left T_LTE
+%left '<'
 %precedence '='
 %left '-'
 %left '+'
@@ -71,8 +73,10 @@ typedef void* yyscan_t;
 %token '+'
 %token '*'
 %token '/'
+%token '<'
 
 %token T_IF
+%token T_LTE
 %token T_ELSE
 %token T_WHILE
 %token T_FUNC
@@ -222,11 +226,21 @@ expr:
  |
  T_ID '=' expr   { $$ = ast_node_create_binary_op(AST_BINARY_OP_ASSIGN, ast_node_create_id($1), $3); free($1); }
  |
- expr T_CMP expr { $$ = ast_node_create_binary_op(AST_BINARY_OP_CMP, $1, $3);   }
+ expr T_CMP expr { 
+	$$ = ast_node_create_binary_op(AST_BINARY_OP_CMP, $1, $3);   
+ }
+ |
+ expr '<' expr {
+	$$ = ast_node_create_binary_op(AST_BINARY_OP_LT, $1, $3);   
+ }
+ |
+ expr T_LTE expr {
+	$$ = ast_node_create_binary_op(AST_BINARY_OP_LTE, $1, $3);   
+ }
  |
  T_ID '(' optional_argument_list ')' {
 	$$ = ast_node_create_call(ast_node_create_id($1), $3, @1.first_line, @1.first_column);
-        free($1);
+  free($1);
  }
  |
  T_PRINT '(' expr ')' { $$ = ast_node_create_print($3); }

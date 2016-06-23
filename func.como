@@ -5,7 +5,7 @@ func test() {
 func main() {
 	
 	name = test;
-	return name();
+	return name(1);
 }
 
 

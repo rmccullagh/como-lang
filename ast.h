@@ -36,7 +36,7 @@ typedef enum {
 typedef enum {
 	AST_BINARY_OP_ADD, AST_BINARY_OP_MINUS, AST_BINARY_OP_ASSIGN,
 	AST_BINARY_OP_TIMES, AST_BINARY_OP_DIV, AST_BINARY_OP_CMP,
-	AST_BINARY_OP_REM
+	AST_BINARY_OP_REM, AST_BINARY_OP_LT, AST_BINARY_OP_LTE
 } ast_binary_op_type;
 
 typedef struct ast_node ast_node;

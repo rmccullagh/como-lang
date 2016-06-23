@@ -37,7 +37,7 @@ static void debug(const char* format, ...)
 	vfprintf (stderr, format, args);
 	va_end (args);
 #endif
-} 
+}
 
 typedef struct compiler_context {
 	Object* filename;
@@ -185,6 +185,8 @@ static Object* ex(ast_node* p)
 		case AST_NODE_TYPE_PRINT: {
 			Object* expr = ex(p->u1.print_node.expr);
 			objectEcho(expr);
+			fputc('\n', stdout);
+			fflush(stdout);
 			objectDestroy(expr);
 			return newNull();
 		}
@@ -226,7 +228,7 @@ static Object* ex(ast_node* p)
 				Object* ret = ex(stmt);
 				objectDestroy(ret);
 				if(cg->return_value != NULL) {
-					return newNull();
+					break;
 				}
 			}
 			return newNull();
@@ -418,6 +420,39 @@ static Object* ex(ast_node* p)
 				default:
 					printf("%s(): invalid binary op(%d)\n", __func__, p->u1.binary_node.type);
 					exit(1);
+				break;
+				case AST_BINARY_OP_LTE: {
+					Object* left = ex(p->u1.binary_node.left);
+					Object* right = ex(p->u1.binary_node.right);
+
+					if(!left || !right) {
+						printf("%s: LEFT OR RIGHT is NULL, bailing out...for"
+							 "	AST_BINARY_OP_LTE\n", __func__);
+						exit(1);
+					} else {
+						int isLessThan = objectValueIsLessThan(left, right );
+						if(isLessThan) {
+							return newLong(1L);
+						} else {
+							if(objectValueCompare(left, right)) {
+								return newLong(1L);
+							} 
+							return newLong(0);
+						}
+					}
+				}
+				break;
+				case AST_BINARY_OP_LT: {
+					Object* left = ex(p->u1.binary_node.left);
+					Object* right = ex(p->u1.binary_node.right);
+
+					if(!left || !right) {
+						printf("%s: LEFT OR RIGHT is NULL, bailint out...\n", __func__);
+						exit(1);
+					} else {
+						return newLong(objectValueIsLessThan(left, right));
+					}
+				}
 				break;
 				case AST_BINARY_OP_CMP: {
 					Object* left = ex(p->u1.binary_node.left);
