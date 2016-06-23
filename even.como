@@ -1,12 +1,26 @@
+func isodd(num) {
+	i = 0;
+	odd = 0;
+	while((i == num) == 0) {
+		if(odd == 0) {
+			odd = 1;
+		} else {
+			odd = 0;
+		}
+		i = i + 1;
+	}
+	return odd;
+}
+
 func print_even(num)
 {
 	while(num) {
-		if(num / 2 == 2) {
-			print(1);
+		temp = isodd(num);
+		if(temp == 0) {
+			print(num);
 		} else {
-			print(0);
+			print("odd");
 		}
-
 		num = num - 1;
 	}
 }
