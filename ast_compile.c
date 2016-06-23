@@ -519,7 +519,16 @@ static Object* ex(ast_node* p)
 							objectDestroy(right);
 							return newLong(sum);	
 						} else {
-							return newNull();
+							char *sleft = objectToString(left);
+							char *sright = objectToString(right);
+							Object *s1 = newString(sleft);
+							Object *s2 = newString(sright);
+							Object *out = stringCat(s1, s2);
+							objectDestroy(s1);
+							objectDestroy(s2);
+							free(left);
+							free(right);
+							return out;
 						}
 					}
 				}
