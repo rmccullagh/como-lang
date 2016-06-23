@@ -1,5 +1,6 @@
 # como como object meta oriented
 
+# even.como
 ```
 func isodd(num) {
 	i = 0;
@@ -18,11 +19,10 @@ func isodd(num) {
 func print_even(num)
 {
 	while(num) {
-		temp = isodd(num);
-		if(temp == 0) {
-			print(num);
+		if(isodd(num)) {
+			print(num + " is odd");
 		} else {
-			print("odd");
+			print(num + " is even");
 		}
 		num = num - 1;
 	}
