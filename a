@@ -1,9 +1,5 @@
-func main() {
-	a = 1;
-	while(a <= 10) {
-			print(a);
-			a = a + 1;
-	}
+x = 0;
+while (x < 3) {
+    print(x);
+    x = x + 1;
 }
-
-main();

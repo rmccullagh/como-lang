@@ -39,7 +39,25 @@ static void debug(const char* format, ...)
 #endif
 }
 
+
+
+typedef struct como_i {
+	unsigned char opcode;
+} como_i;
+
+typedef struct op_code {
+	struct como_i inst;
+	Object *op1;
+} op_code;
+
+typedef struct op_array {
+	size_t size;
+	size_t capacity;
+	op_code **table;
+} op_array;
+
 typedef struct compiler_context {
+	int lbl;
 	Object* filename;
 	const char* active_function_name;
 	Object* symbol_table;
@@ -47,6 +65,8 @@ typedef struct compiler_context {
 	como_stack* function_call_stack;
 	como_stack *global_call_stack;
 	Object* return_value;
+	size_t pc;
+	op_array *code;
 } compiler_context;
 
 static compiler_context* cg;
@@ -59,9 +79,95 @@ static void como_var_dump(Object* args, Object** retval)
 	cg->return_value = NULL;
 }
 
+#define LOAD_CONST 0x01
+#define STORE_NAME 0x02
+#define LOAD_NAME  0x03
+#define IS_LESS_THAN 0x04
+#define JZ			0x05
+#define IPRINT      0x06
+#define IADD        0x07
+#define JMP         0x08
+#define IRETURN     0x09
+#define NOP         0x0a
+#define LABEL       0x0b
+#define HALT        0x0c
+
+static void como_vm() {
+	while(1) {
+		size_t pc = cg->pc;
+		op_code *c = cg->code->table[pc];
+		switch(c->inst.opcode) {
+			case LOAD_CONST: {
+				char *value = objectToString(c->op1);
+				printf("\tLOAD_CONST %s\n", value);
+				free(value);
+				break;
+			}
+			case STORE_NAME: {
+				char *value = objectToString(c->op1);
+				printf("\tSTORE_NAME %s\n", value);
+				free(value);
+				break;
+			}
+			case LOAD_NAME: {
+				char *value = objectToString(c->op1);
+				printf("\tLOAD_NAME %s\n", value);
+				free(value);
+				break;
+			}
+			case IS_LESS_THAN: {
+				printf("\tIS_LESS_THAN\n");
+				break;
+			}
+			case JZ: {
+				char *value = objectToString(c->op1);
+				printf("\tJZ %s\n", value);
+				free(value);
+				break;
+			}
+			case IPRINT: {
+				printf("\tPRINT\n");
+				break;
+			}
+			case IADD: {
+				printf("\tADD\n");
+				break;
+			}
+			case JMP: {
+				char *value = objectToString(c->op1);
+				printf("\tJMP %s\n", value);
+				free(value);
+				break;
+			}
+			case NOP: {
+				printf("\tNOP\n");
+				break;
+			}
+			case LABEL: {
+				char *value = objectToString(c->op1);
+				printf("LABEL %s\n", value);
+				free(value);
+				break;
+			}
+			case HALT: {
+				return;
+			}
+		}
+		cg->pc++;
+	}
+}
+
 static void compiler_init(void)
 {
 	cg = malloc(sizeof(compiler_context));
+	cg->lbl = 0;
+	cg->pc = 0;
+	cg->code = malloc(sizeof(op_array));
+	cg->code->size = 0;
+	cg->code->capacity = 64;
+	cg->code->table = calloc(64, sizeof(op_code));
+
+
 	cg->symbol_table = newMap(2);
 	cg->current_symbol_table = NULL;
 	cg->function_call_stack = NULL;
@@ -75,9 +181,6 @@ static void compiler_init(void)
 	mapInsert(cg->symbol_table, "var_dump", var_dump);
 	objectDestroy(var_dump);
 
-	//como_stack_push_ex(&cg->global_call_stack, call_info_create(
-//		id, fcall_lineno, fcall_colno
-//	));
 }
 
 static compiler_context* cg_context_create()
@@ -170,6 +273,8 @@ static void como_stack_push_ex(como_stack **stack, Object *call_info)
 
 static Object* ex(ast_node* p)
 {
+	int lbl1, lbl2;
+
 	if(!p)
 		return NULL;
 
@@ -179,11 +284,13 @@ static Object* ex(ast_node* p)
 			exit(1);
 		break;
 		case AST_NODE_TYPE_STRING: {
+			printf("\tLOAD_CONST\t%s\n", p->u1.string_value.value);
 			return newString(p->u1.string_value.value);
 		}
 		break;
 		case AST_NODE_TYPE_PRINT: {
 			Object* expr = ex(p->u1.print_node.expr);
+			printf("\tprint\n");
 			objectEcho(expr);
 			fputc('\n', stdout);
 			fflush(stdout);
@@ -192,9 +299,11 @@ static Object* ex(ast_node* p)
 		}
 		break;
 		case AST_NODE_TYPE_NUMBER:
+			printf("\tLOAD_CONST\t%ld\n", p->u1.number_value);
 			return newLong(p->u1.number_value);
 		break;
 		case AST_NODE_TYPE_ID: {
+			printf("\tLOAD_NAME\t%s\n", p->u1.id_node.name);
 			Object* value;
 			if(cg->current_symbol_table == NULL) {
 				value = mapSearch(cg->symbol_table, p->u1.id_node.name);
@@ -234,11 +343,18 @@ static Object* ex(ast_node* p)
 			return newNull();
 		} break;
 		case AST_NODE_TYPE_WHILE: {
+			printf("L%03d:\n", lbl1 = cg->lbl++);
 			Object* cond = ex(p->u1.while_node.condition);
-
+			printf("\tjz\tL%03d\n", lbl2 = cg->lbl++);
+			int printed = 0;
 			while(is_truthy(cond)) {
 				ex(p->u1.while_node.body);	
 				cond = ex(p->u1.while_node.condition);
+				if(printed == 0) {
+					printf("\tjmp\tL%03d\n", lbl1);
+            		printf("L%03d:\n", lbl2);
+            		printed = 1;
+            	}
 			}
 			return newNull();	
 		}
@@ -446,13 +562,26 @@ static Object* ex(ast_node* p)
 				case AST_BINARY_OP_LT: {
 					Object* left = ex(p->u1.binary_node.left);
 					Object* right = ex(p->u1.binary_node.right);
-
+					printf("\tIS_LESS_THAN\n");
 					if(!left || !right) {
 						printf("%s: LEFT OR RIGHT is NULL, bailint out...\n", __func__);
 						dump_fn_call_stack();
 						exit(1);
 					} else {
 						return newLong(objectValueIsLessThan(left, right));
+					}
+				}
+				break;
+				case AST_BINARY_OP_GT: {
+					Object* left = ex(p->u1.binary_node.left);
+					Object* right = ex(p->u1.binary_node.right);
+
+					if(!left || !right) {
+						printf("%s: LEFT OR RIGHT is NULL, bailint out...\n", __func__);
+						dump_fn_call_stack();
+						exit(1);
+					} else {
+						return newLong(objectValueIsGreaterThan(left, right));
 					}
 				}
 				break;
@@ -510,7 +639,9 @@ static Object* ex(ast_node* p)
 				case AST_BINARY_OP_ADD: {
 					Object* left = ex(p->u1.binary_node.left);
 					Object* right = ex(p->u1.binary_node.right);
+					printf("\tADD\n");
 					if(!left || !right) {
+						printf("is null\n");
 						return NULL;
 					} else {
 						if(O_TYPE(left) == IS_LONG && O_TYPE(right) == IS_LONG) {
@@ -526,8 +657,8 @@ static Object* ex(ast_node* p)
 							Object *out = stringCat(s1, s2);
 							objectDestroy(s1);
 							objectDestroy(s2);
-							free(left);
-							free(right);
+							free(sleft);
+							free(sright);
 							return out;
 						}
 					}
@@ -551,7 +682,8 @@ static Object* ex(ast_node* p)
 				} break;
 				case AST_BINARY_OP_ASSIGN: {
 					const char* id = p->u1.binary_node.left->u1.id_node.name;
-					Object* right = ex(p->u1.binary_node.right);					
+					Object* right = ex(p->u1.binary_node.right);
+					printf("\tSTORE_NAME\t%s\n", id);				
 					if(cg->current_symbol_table == NULL) {
 						mapInsert(cg->symbol_table, id, right);
 					} else {
@@ -568,6 +700,138 @@ static Object* ex(ast_node* p)
 	}
 }
 
+static void emit(unsigned char op, Object *arg) {
+	op_code *i = malloc(sizeof(op_code));
+	como_i inst;
+	inst.opcode = op;
+	i->inst = inst;
+	i->op1 = arg;
+	cg->code->table[cg->code->size++] = i;
+}
+
+static int como_compile(ast_node* p)
+{
+	int lbl1, lbl2;
+
+	if(!p)
+		return 0;
+
+	switch(p->type) {
+		default:
+			printf("%s(): invalid node type(%d)\n", __func__, p->type);
+			exit(1);
+		break;
+		case AST_NODE_TYPE_STRING: {
+			//printf("\tLOAD_CONST\t%s\n", p->u1.string_value.value);
+			emit(LOAD_CONST, newString(p->u1.string_value.value));
+		}
+		break;
+		case AST_NODE_TYPE_PRINT: {
+			como_compile(p->u1.print_node.expr);
+			emit(IPRINT, newNull());
+			//printf("\tprint\n");
+		}
+		break;
+		case AST_NODE_TYPE_NUMBER:
+			//printf("\tLOAD_CONST\t%ld\n", p->u1.number_value);
+			emit(LOAD_CONST, newLong(p->u1.number_value));
+		break;
+		case AST_NODE_TYPE_ID: {
+			//printf("\tLOAD_NAME\t%s\n", p->u1.id_node.name);
+			emit(LOAD_NAME, newString(p->u1.id_node.name));
+		}
+		break;
+		case AST_NODE_TYPE_RET: {
+			//printf("\tRETURN\n");
+			emit(IRETURN, newNull());
+		} break;
+		case AST_NODE_TYPE_STATEMENT_LIST: {
+			size_t i;
+			for(i = 0; i < p->u1.statements_node.count; i++) {
+				ast_node* stmt = p->u1.statements_node.statement_list[i];
+				como_compile(stmt);
+			}
+		} break;
+		case AST_NODE_TYPE_WHILE: {
+			//printf("L%03d:\n", lbl1 = cg->code->size);
+			Object *l = newLong(cg->code->size);
+			emit(LABEL, l);
+			size_t b = 0;
+			Object *l2 = newLong(0);
+			como_compile(p->u1.while_node.condition);
+			//printf("\tjz\tL%03d\n", lbl2 = cg->code->size);
+			emit(JZ, l2);
+			como_compile(p->u1.while_node.body);
+			//printf("\tjmp\tL%03d\n", O_LVAL(l));
+			emit(JMP, newLong(O_LVAL(l)));
+    		//printf("L%03d:\n", cg->code->size);
+    		Object *l3 = newLong(cg->code->size);
+    		emit(LABEL, l3);
+    		O_LVAL(l2) = O_LVAL(l3);
+		}
+		break;
+		case AST_NODE_TYPE_IF: {
+		} 
+		break;
+		case AST_NODE_TYPE_FUNC_DECL: {	
+		} 
+		break;
+		case AST_NODE_TYPE_CALL: {
+
+		} 
+		break;
+		case AST_NODE_TYPE_BIN_OP: {
+			switch(p->u1.binary_node.type) {
+				default:
+					printf("%s(): invalid binary op(%d)\n", __func__, p->u1.binary_node.type);
+					exit(1);
+				break;
+				case AST_BINARY_OP_LTE: {
+				}
+				break;
+				case AST_BINARY_OP_LT: {
+					como_compile(p->u1.binary_node.left);
+					como_compile(p->u1.binary_node.right);
+					//printf("\tIS_LESS_THAN\n");
+					emit(IS_LESS_THAN, newNull());
+				}
+				break;
+				case AST_BINARY_OP_GT: {
+				}
+				break;
+				case AST_BINARY_OP_CMP: {
+				}
+				break;
+				case AST_BINARY_OP_MINUS: {
+				}
+				break;
+				case AST_BINARY_OP_DIV: {
+				}
+				break;
+				case AST_BINARY_OP_ADD: {
+					como_compile(p->u1.binary_node.left);
+					como_compile(p->u1.binary_node.right);
+					//printf("\tADD\n");
+					emit(IADD, newNull());
+				}
+				break;
+				case AST_BINARY_OP_TIMES: {
+				} 
+				break;
+				case AST_BINARY_OP_ASSIGN: {
+					const char* id = p->u1.binary_node.left->u1.id_node.name;
+					como_compile(p->u1.binary_node.right);
+					//printf("\tSTORE_NAME\t%s\n", id);
+					emit(STORE_NAME, newString(id));			
+				} 
+				break;
+			}	
+		} break;
+	}
+	return 0;
+}
+
+
 void ast_compile(const char* filename, ast_node* program)
 {
 	if(!program) {
@@ -583,9 +847,15 @@ void ast_compile(const char* filename, ast_node* program)
 
 	cg->filename = newString(filename);	
 	
-	Object* ret = ex(program);
+	//Object* ret = ex(program);
+	(void )como_compile(program);
+	emit(HALT, newNull());
+
+	como_vm();
+
+	printf("\tHALT\n");
 	objectDestroy(cg->symbol_table);
-	objectDestroy(ret);
+	//objectDestroy(ret);
 	objectDestroy(cg->filename);
 	
 	como_stack* top = cg->function_call_stack;

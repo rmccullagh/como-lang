@@ -56,7 +56,7 @@ D   [0-9]
 
 %%
 
-"if"		        { return T_IF;     }
+"if"		    { return T_IF;     }
 "else"          { return T_ELSE;   }
 "while"         { return T_WHILE;  }
 "func"          { return T_FUNC;   }

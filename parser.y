@@ -49,7 +49,7 @@ typedef void* yyscan_t;
 %error-verbose
 %expect 0
 %lex-param   { yyscan_t scanner }
-%parse-param { ast_node** ast }
+%parse-param { ast_node** ast   }
 %parse-param { yyscan_t scanner }
 
 %union {
@@ -62,6 +62,7 @@ typedef void* yyscan_t;
 %left T_CMP
 %left T_LTE
 %left '<'
+%left '>'
 %precedence '='
 %left '-'
 %left '+'
@@ -74,6 +75,7 @@ typedef void* yyscan_t;
 %token '*'
 %token '/'
 %token '<'
+%token '>'
 
 %token T_IF
 %token T_LTE
@@ -224,14 +226,21 @@ expr:
  |
  T_STR_LIT       { $$ = ast_node_create_string_literal($1); free($1); }
  |
- T_ID '=' expr   { $$ = ast_node_create_binary_op(AST_BINARY_OP_ASSIGN, ast_node_create_id($1), $3); free($1); }
- |
- expr T_CMP expr { 
-	$$ = ast_node_create_binary_op(AST_BINARY_OP_CMP, $1, $3);   
- }
+ T_ID '=' expr   { 
+ 	$$ = ast_node_create_binary_op(AST_BINARY_OP_ASSIGN, ast_node_create_id($1), $3); 
+ 	free($1); 
+ 	}
  |
  expr '<' expr {
 	$$ = ast_node_create_binary_op(AST_BINARY_OP_LT, $1, $3);   
+ }
+ |
+ expr '>' expr {
+	$$ = ast_node_create_binary_op(AST_BINARY_OP_GT, $1, $3);   
+ }
+ |
+ expr T_CMP expr { 
+	$$ = ast_node_create_binary_op(AST_BINARY_OP_CMP, $1, $3);   
  }
  |
  expr T_LTE expr {

@@ -1,8 +1,8 @@
-CFLAGS = -g -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -I/home/vagrant/include -L/home/vagrant/lib
+CFLAGS = -g -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -I/home/ryan/include -L/home/ryan/lib
 LIBS = -lobject -leasyio
 
 como: ast.o ast_node_free.o ast_node_dump_tree.o stack.o ast_compile.o lexer.o parser.o como.o
-	$(CC) ast.o ast_node_free.o ast_node_dump_tree.o stack.o ast_compile.o parser.o lexer.o como.o $(CFLAGS) $(LIBS) -o como
+	$(CC) ast.o ast_node_free.o ast_node_dump_tree.o stack.o ast_compile.o parser.o lexer.o como.o -o como $(CFLAGS) $(LIBS)
 
 ast.o: ast.c
 	$(CC) $(CFLAGS) -c ast.c
@@ -32,7 +32,7 @@ parser.c: parser.y
 	bison --warnings=all parser.y
 
 como.o: como.c
-	$(CC) $(CFLAGS) -c como.c
+	$(CC) $(CFLAGS) $(LIBS) -c como.c
 clean:
 	rm -f *.o lexer.c lexer.h parser.c parser.h como
 
