@@ -132,7 +132,8 @@ static void como_var_dump(Object* args, Object** retval)
 #define NOP          0x42
 #define LABEL        0x0b
 #define HALT         0x0c
-#define IS_EQUAL     0X0d
+#define IS_EQUAL     0x0d
+#define IDIV         0x0e
 
 #define DEBUG_OBJECT(o) do { \
 	fprintf(stdout, "DEBUGGING OBJECT:\n\t"); \
@@ -141,8 +142,14 @@ static void como_var_dump(Object* args, Object** retval)
 	fflush(stdout); \
 } while (0) 
 
-static void debug_code_to_output(FILE *fp) {
+#define BINARY_OP_SETUP \
+		Object *left; \
+		Object *right; \
+		POP(right); \
+		POP(left); \
 
+static void debug_code_to_output(FILE *fp) {
+		
 		fprintf(fp, "*** BEGIN CODE ***\n");
 		size_t i;
 		for(i = 0; i < cg->code->size; i++) {
@@ -182,6 +189,10 @@ static void debug_code_to_output(FILE *fp) {
 				}
 				case IADD: {
 					fprintf(fp, "\tADD\n");
+					break;
+				}
+				case IDIV: {
+					fprintf(fp, "\tDIV\n");
 					break;
 				}
 				case JMP: {
@@ -323,6 +334,14 @@ static void como_vm() {
 				cg->pc++;
 				break;
 			}
+			case IDIV: {
+				BINARY_OP_SETUP
+				if(O_TYPE(left) != IS_LONG && O_TYPE(right) != IS_LONG) {
+					fprintf(stderr, "como: Can't divide non numeric objects\n");
+					exit(1);
+				}
+				
+			}
 			case JMP: {
 #ifdef DEBUG
 				fprintf(stdout, "debug: JMP: going from %zu to %zu\n",
@@ -343,9 +362,8 @@ static void como_vm() {
 				return;
 			}
 			case IS_EQUAL: {
-				Object *left, *right;
-				POP(right);
-				POP(left);
+				
+				BINARY_OP_SETUP
 
 				if(objectValueCompare(left, right)) {
 					PUSH(newLong(1)) ;
@@ -597,8 +615,10 @@ static int como_compile(ast_node* p)
 				case AST_BINARY_OP_MINUS: {
 				}
 				break;
-				case AST_BINARY_OP_DIV: {
-				}
+				case AST_BINARY_OP_DIV:
+					como_compile(p->u1.binary_node.left);
+					como_compile(p->u1.binary_node.right);
+					emit(IDIV, newNull());
 				break;
 				case AST_BINARY_OP_ADD: {
 					como_compile(p->u1.binary_node.left);
@@ -612,7 +632,6 @@ static int como_compile(ast_node* p)
 				case AST_BINARY_OP_ASSIGN: {
 					const char* id = p->u1.binary_node.left->u1.id_node.name;
 					como_compile(p->u1.binary_node.right);
-					//printf("\tSTORE_NAME\t%s\n", id);
 					emit(STORE_NAME, newString(id));			
 				} 
 				break;
