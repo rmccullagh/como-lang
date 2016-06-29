@@ -272,10 +272,7 @@ static void como_vm() {
 				break;
 			}
 			case IS_LESS_THAN: {
-				Object *left;
-				Object *right;
-				POP(right);
-				POP(left);
+				BINARY_OP_SETUP
 				if(objectValueIsLessThan(left, right)) {
 					PUSH(newLong(1));
 				} else {
@@ -287,12 +284,6 @@ static void como_vm() {
 			case JZ: {
 				Object *cond;
 				POP(cond);
-				if(O_TYPE(cond) != IS_LONG) {
-					fprintf(stderr, "JZ, operand is not IS_LONG, got %d\n",
-							O_TYPE(cond));
-					assert(0);
-				}
-				
 				if(O_TYPE(cond) == IS_LONG && O_LVAL(cond) == 0) {
 					cg->pc = O_LVAL(c->op1);		
 					break;			
@@ -312,11 +303,7 @@ static void como_vm() {
 				break;
 			}
 			case IADD: {
-				Object *left, *right;
-				POP(right);
-				POP(left);
-				assert(pc < cg->code->size);
-
+				BINARY_OP_SETUP
 				if(O_TYPE(left) == IS_LONG && O_TYPE(right) == IS_LONG) {
 					PUSH(newLong(O_LVAL(left) + O_LVAL(right)));
 				}	else {
@@ -340,13 +327,9 @@ static void como_vm() {
 					fprintf(stderr, "como: Can't divide non numeric objects\n");
 					exit(1);
 				}
-				
+				break;	
 			}
 			case JMP: {
-#ifdef DEBUG
-				fprintf(stdout, "debug: JMP: going from %zu to %zu\n",
-						cg->pc, O_LVAL(c->op1));
-#endif
 				cg->pc = O_LVAL(c->op1);
 				break;
 			}
@@ -362,9 +345,7 @@ static void como_vm() {
 				return;
 			}
 			case IS_EQUAL: {
-				
 				BINARY_OP_SETUP
-
 				if(objectValueCompare(left, right)) {
 					PUSH(newLong(1)) ;
 				} else {
