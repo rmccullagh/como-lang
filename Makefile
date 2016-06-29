@@ -1,4 +1,4 @@
-CFLAGS = -g -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -I/home/ryan/include -L/home/ryan/lib
+CFLAGS = -g -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -I/home/vagrant/include -L/home/vagrant/lib
 LIBS = -lobject -leasyio
 
 como: ast.o ast_node_free.o ast_node_dump_tree.o stack.o ast_compile.o lexer.o parser.o como.o
