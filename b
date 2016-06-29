@@ -1,5 +1,4 @@
 while(0 < 1) {
-	print("THIS SHOULD NOT BE HAPPENING");
+	print(1);
 }
 
-print("REACHED");

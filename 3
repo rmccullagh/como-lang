@@ -93,8 +93,6 @@ typedef struct op_array {
 
 #define MAX_LABELS 1024
 
-static int should_only_show_code = 0;
-
 typedef struct compiler_context {
 	int lbl;
 	size_t label_table[MAX_LABELS];
@@ -215,9 +213,9 @@ static void debug_code_to_output(FILE *fp) {
 
 static void como_vm() {
 	
-	//debug_code_to_output(stdout);
+	debug_code_to_output(stdout);
 
-	//return;
+	return;
 
 	while(1) {
 		size_t pc = cg->pc;
@@ -237,11 +235,17 @@ static void como_vm() {
 
 		switch(c->inst.opcode) {
 			case LOAD_CONST: {
+				char *value = objectToString(c->op1);
+				printf("\tLOAD_CONST %s\n", value);
+				free(value);
 				PUSH(c->op1);
 				cg->pc++;
 				break;
 			}
 			case STORE_NAME: {
+				char *value = objectToString(c->op1);
+				printf("\tSTORE_NAME %s\n", value);
+				free(value);
 				Object *v;
 				POP(v);
 				mapInsert(cframe.cf_symtab, O_SVAL(c->op1)->value, v);
@@ -250,6 +254,9 @@ static void como_vm() {
 				break;
 			}
 			case LOAD_NAME: {
+				char *value = objectToString(c->op1);
+				printf("\tLOAD_NAME %s\n", value);
+				free(value);
 				Object *v = mapSearch(cframe.cf_symtab, O_SVAL(c->op1)->value);
 				if(v == NULL) {
 					fprintf(stderr, "Undefined variable %s\n", O_SVAL(c->op1)->value);
@@ -261,6 +268,7 @@ static void como_vm() {
 				break;
 			}
 			case IS_LESS_THAN: {
+				printf("\tIS_LESS_THAN\n");
 				Object *left;
 				Object *right;
 				POP(right);
@@ -274,6 +282,9 @@ static void como_vm() {
 				break;
 			}
 			case JZ: {
+				char *value = objectToString(c->op1);
+				printf("\tJZ %s\n", value);
+				free(value);
 				Object *cond;
 				POP(cond);
 				if(O_TYPE(cond) != IS_LONG) {
@@ -291,6 +302,7 @@ static void como_vm() {
 				break;
 			}
 			case IPRINT: {
+			  printf("\tPRINT\n");
 				Object *value;
 				POP(value);
 				size_t len = 0;
@@ -301,6 +313,7 @@ static void como_vm() {
 				break;
 			}
 			case IADD: {
+				printf("\tADD\n");
 				Object *left, *right;
 				POP(right);
 				POP(left);
@@ -309,40 +322,52 @@ static void como_vm() {
 				if(O_TYPE(left) == IS_LONG && O_TYPE(right) == IS_LONG) {
 					PUSH(newLong(O_LVAL(left) + O_LVAL(right)));
 				}	else {
-					char *sval = objectToString(left);
-					char *rval = objectToString(right);
-					Object *s1 = newString(sval);
-					Object *s2 = newString(rval);
-					Object *s3 = stringCat(s1, s2);
-					free(sval);
-					free(rval);
-					objectDestroy(s1);
-					objectDestroy(s2);
-					PUSH(s3);	
+					fflush(stdout);
+					fprintf(stderr, "como: error, can't concat two not number objects\n");
+					fflush(stderr);
+					exit(1);
 				}
 				cg->pc++;
 				break;
 			}
 			case JMP: {
-#ifdef DEBUG
+				char *value = objectToString(c->op1);
+				printf("\tJMP %s\n", value);
+				free(value);
+				Object *v;
+				POP(v);
+				assert(v);
+				if(O_TYPE(v) != IS_LONG) {
+					fprintf(stderr, "JMP, operand is not IS_LONG, got %d\n",
+							O_TYPE(v));
+					assert(0);
+				}
+
 				fprintf(stdout, "debug: JMP: going from %zu to %zu\n",
-						cg->pc, O_LVAL(c->op1));
-#endif
-				cg->pc = O_LVAL(c->op1);
+						cg->pc, O_LVAL(v));
+
+				cg->pc = O_LVAL(v);
 				break;
 			}
 			case NOP: {
+			  printf("\tNOP\n");
 				cg->pc++;
 				break;
 			}
 			case LABEL: {
+				char *value = objectToString(c->op1);
+			  printf("LABEL %s\n", value);
+				free(value);
 				cg->pc++;
 				break;
 			}
 			case HALT: {
+				printf("\tHALT\n");	
+				fflush(stdout);
 				return;
 			}
 			case IS_EQUAL: {
+				printf("\tIS_EQUAL\n");
 				Object *left, *right;
 				POP(right);
 				POP(left);

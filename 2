@@ -93,8 +93,6 @@ typedef struct op_array {
 
 #define MAX_LABELS 1024
 
-static int should_only_show_code = 0;
-
 typedef struct compiler_context {
 	int lbl;
 	size_t label_table[MAX_LABELS];
@@ -126,10 +124,10 @@ static void como_var_dump(Object* args, Object** retval)
 #define IS_LESS_THAN 0x04
 #define JZ			     0x05
 #define IPRINT       0x06
-#define IADD         0x45
-#define JMP          0x52
-#define IRETURN      0xff
-#define NOP          0x42
+#define IADD         0x07
+#define JMP          0x08
+#define IRETURN      0x09
+#define NOP          0x0a
 #define LABEL        0x0b
 #define HALT         0x0c
 #define IS_EQUAL     0X0d
@@ -141,107 +139,30 @@ static void como_var_dump(Object* args, Object** retval)
 	fflush(stdout); \
 } while (0) 
 
-static void debug_code_to_output(FILE *fp) {
-
-		fprintf(fp, "*** BEGIN CODE ***\n");
-		size_t i;
-		for(i = 0; i < cg->code->size; i++) {
-			op_code *c = cg->code->table[i];
-			switch(c->inst.opcode) {
-				case LOAD_CONST: {
-					char *value = objectToString(c->op1);
-					fprintf(fp, "\tLOAD_CONST %s\n", value);
-					free(value);
-					break;
-				}
-				case STORE_NAME: {
-					char *value = objectToString(c->op1);
-					fprintf(fp, "\tSTORE_NAME %s\n", value);
-					free(value);
-					break;
-				}
-				case LOAD_NAME: {
-					char *value = objectToString(c->op1);
-					fprintf(fp, "\tLOAD_NAME %s\n", value);
-					free(value);
-					break;
-				}
-				case IS_LESS_THAN: {
-					fprintf(fp, "\tIS_LESS_THAN\n");
-					break;
-				}
-				case JZ: {
-					char *value = objectToString(c->op1);
-					fprintf(fp, "\tJZ %s\n", value);
-					free(value);
-					break;
-				}
-				case IPRINT: {
-					fprintf(fp,"\tPRINT\n");
-					break;
-				}
-				case IADD: {
-					fprintf(fp, "\tADD\n");
-					break;
-				}
-				case JMP: {
-					char *value = objectToString(c->op1);
-					fprintf(fp, "\tJMP %s\n", value);
-					free(value);
-					break;
-				}
-				case NOP: {
-					fprintf(fp,"\tNOP\n");
-					break;
-				}
-				case LABEL: {
-					char *value = objectToString(c->op1);
-					fprintf(fp, "LABEL %s\n", value);
-					free(value);
-					break;
-				}
-				case HALT: {
-					fprintf(fp, "\tHALT\n");	
-					break;
-				}
-				case IS_EQUAL: {
-					fprintf(fp, "\tIS_EQUAL\n");
-					break;
-				}
-			}
-		}
-		fprintf(fp, "*** END CODE ***\n");
-}
-
 static void como_vm() {
-	
-	//debug_code_to_output(stdout);
-
-	//return;
-
 	while(1) {
 		size_t pc = cg->pc;
-		if(!(pc < cg->code->size)) {
-			fprintf(stderr, "pc is passed the size, pc=%zu, size=%zu\n",
-				pc, cg->code->size);
-			assert(0);
-		}
-
 		op_code *c = cg->code->table[pc];
 		
 #ifdef DEBUG
 		fprintf(stderr, "pc=%zu\n", pc);
 #endif
-			assert(c);
 
+		assert(c);
 
 		switch(c->inst.opcode) {
 			case LOAD_CONST: {
+				char *value = objectToString(c->op1);
+				printf("\tLOAD_CONST %s\n", value);
+				free(value);
 				PUSH(c->op1);
 				cg->pc++;
 				break;
 			}
 			case STORE_NAME: {
+				char *value = objectToString(c->op1);
+				printf("\tSTORE_NAME %s\n", value);
+				free(value);
 				Object *v;
 				POP(v);
 				mapInsert(cframe.cf_symtab, O_SVAL(c->op1)->value, v);
@@ -250,6 +171,9 @@ static void como_vm() {
 				break;
 			}
 			case LOAD_NAME: {
+				char *value = objectToString(c->op1);
+				printf("\tLOAD_NAME %s\n", value);
+				free(value);
 				Object *v = mapSearch(cframe.cf_symtab, O_SVAL(c->op1)->value);
 				if(v == NULL) {
 					fprintf(stderr, "Undefined variable %s\n", O_SVAL(c->op1)->value);
@@ -261,6 +185,7 @@ static void como_vm() {
 				break;
 			}
 			case IS_LESS_THAN: {
+				printf("\tIS_LESS_THAN\n");
 				Object *left;
 				Object *right;
 				POP(right);
@@ -274,14 +199,12 @@ static void como_vm() {
 				break;
 			}
 			case JZ: {
+				char *value = objectToString(c->op1);
+				printf("\tJZ %s\n", value);
+				free(value);
 				Object *cond;
 				POP(cond);
-				if(O_TYPE(cond) != IS_LONG) {
-					fprintf(stderr, "JZ, operand is not IS_LONG, got %d\n",
-							O_TYPE(cond));
-					assert(0);
-				}
-				
+				assert(cond);
 				if(O_TYPE(cond) == IS_LONG && O_LVAL(cond) == 0) {
 					cg->pc = O_LVAL(c->op1);		
 					break;			
@@ -291,58 +214,67 @@ static void como_vm() {
 				break;
 			}
 			case IPRINT: {
+			  printf("\tPRINT\n");
 				Object *value;
 				POP(value);
 				size_t len = 0;
 				char *sval = objectToStringLength(value, &len);
 				fprintf(stdout, "%s\n", sval);
 				free(sval);
+				fflush(stdout);
+				PUSH(newLong(len + 1));
 				cg->pc++;
 				break;
 			}
 			case IADD: {
+				printf("\tADD\n");
 				Object *left, *right;
 				POP(right);
 				POP(left);
-				assert(pc < cg->code->size);
-
 				if(O_TYPE(left) == IS_LONG && O_TYPE(right) == IS_LONG) {
 					PUSH(newLong(O_LVAL(left) + O_LVAL(right)));
 				}	else {
-					char *sval = objectToString(left);
-					char *rval = objectToString(right);
-					Object *s1 = newString(sval);
-					Object *s2 = newString(rval);
-					Object *s3 = stringCat(s1, s2);
-					free(sval);
-					free(rval);
-					objectDestroy(s1);
-					objectDestroy(s2);
-					PUSH(s3);	
+					char *slval, *rsval;
+					Object *s1, *s2;
+					slval = objectToString(left);
+					rsval = objectToString(right);
+					s1 = newString(slval);
+					s2 = newString(rsval);
+					free(slval); free(rsval);
+					PUSH(stringCat(s1, s2));
+					objectDestroy(s1); objectDestroy(s2);
 				}
 				cg->pc++;
 				break;
 			}
 			case JMP: {
-#ifdef DEBUG
-				fprintf(stdout, "debug: JMP: going from %zu to %zu\n",
-						cg->pc, O_LVAL(c->op1));
-#endif
-				cg->pc = O_LVAL(c->op1);
+				char *value = objectToString(c->op1);
+				printf("\tJMP %s\n", value);
+				free(value);
+				Object *v;
+				POP(v);
+				cg->pc = O_LVAL(v);
 				break;
 			}
 			case NOP: {
+			  printf("\tNOP\n");
 				cg->pc++;
 				break;
 			}
 			case LABEL: {
+				char *value = objectToString(c->op1);
+			  printf("LABEL %s\n", value);
+				free(value);
 				cg->pc++;
 				break;
 			}
 			case HALT: {
+				printf("\tHALT\n");	
+				fflush(stdout);
 				return;
 			}
 			case IS_EQUAL: {
+				printf("\tIS_EQUAL\n");
 				Object *left, *right;
 				POP(right);
 				POP(left);
@@ -353,7 +285,6 @@ static void como_vm() {
 					PUSH(newLong(0));
 				}
 				cg->pc++;
-				break;
 			}
 		}
 	}
@@ -367,7 +298,7 @@ static void compiler_init(void)
 	cg->pc = 0;
 	cg->code = malloc(sizeof(op_array));
 	cg->code->size = 0;
-	cg->code->capacity = 1024;
+	cg->code->capacity = 64;
 	cg->code->table = calloc(64, sizeof(op_code));
 
 
@@ -500,22 +431,30 @@ static int como_compile(ast_node* p)
 			printf("%s(): invalid node type(%d)\n", __func__, p->type);
 			exit(1);
 		break;
-		case AST_NODE_TYPE_STRING:
+		case AST_NODE_TYPE_STRING: {
+			//printf("\tLOAD_CONST\t%s\n", p->u1.string_value.value);
 			emit(LOAD_CONST, newString(p->u1.string_value.value));
+		}
 		break;
-		case AST_NODE_TYPE_PRINT:
+		case AST_NODE_TYPE_PRINT: {
 			como_compile(p->u1.print_node.expr);
 			emit(IPRINT, newNull());
+			//printf("\tprint\n");
+		}
 		break;
 		case AST_NODE_TYPE_NUMBER:
+			//printf("\tLOAD_CONST\t%ld\n", p->u1.number_value);
 			emit(LOAD_CONST, newLong(p->u1.number_value));
 		break;
-		case AST_NODE_TYPE_ID:
+		case AST_NODE_TYPE_ID: {
+			//printf("\tLOAD_NAME\t%s\n", p->u1.id_node.name);
 			emit(LOAD_NAME, newString(p->u1.id_node.name));
+		}
 		break;
-		case AST_NODE_TYPE_RET:
+		case AST_NODE_TYPE_RET: {
+			//printf("\tRETURN\n");
 			emit(IRETURN, newNull());
-		break;
+		} break;
 		case AST_NODE_TYPE_STATEMENT_LIST: {
 			size_t i;
 			for(i = 0; i < p->u1.statements_node.count; i++) {
@@ -524,39 +463,27 @@ static int como_compile(ast_node* p)
 			}
 		} break;
 		case AST_NODE_TYPE_WHILE: {
+			//printf("L%03d:\n", lbl1 = cg->code->size);
 			Object *l = newLong(cg->code->size);
-			/**
-			 * The marker of the start of the while loop
-			 */
 			emit(LABEL, l);
-			
 			Object *l2 = newLong(0);
 			como_compile(p->u1.while_node.condition);
 		
 			/**
-			 * Need to back patch this to an operand address that
-			 * has yet to be seen
-			 */	
-			emit(JZ, l2);
+			 * NEED TO BACK PACK and patch this operand */	
+			emit(JZ, newPointer((void *)SIZE_MAX));
 
 
 			como_compile(p->u1.while_node.body);
 			//printf("\tjmp\tL%03d\n", O_LVAL(l));
 			emit(JMP, newLong(O_LVAL(l)));
-    	//printf("L%03d:\n", cg->code->size);
-    	Object *l3 = newLong(cg->code->size);
     	
-			/**
-			 * Now go back to the first label generated here (in this case )
-			 */
 			
+			//printf("L%03d:\n", cg->code->size);
+    	Object *l3 = newLong(cg->code->size);
+    	emit(LABEL, l3);
+    	O_LVAL(l2) = O_LVAL(l3);
 			cg->label_table[cg->label_total++] = cg->code->size - 1;
-			/**
-			 * The upper JZ is targeted to this instruction
-			 */
-			emit(LABEL, l3);
-    	
-			O_LVAL(l2) = O_LVAL(l3);
 		
 		}
 		break;
@@ -582,6 +509,7 @@ static int como_compile(ast_node* p)
 				case AST_BINARY_OP_LT: {
 					como_compile(p->u1.binary_node.left);
 					como_compile(p->u1.binary_node.right);
+					//printf("\tIS_LESS_THAN\n");
 					emit(IS_LESS_THAN, newNull());
 				}
 				break;
@@ -591,6 +519,7 @@ static int como_compile(ast_node* p)
 				case AST_BINARY_OP_CMP: {
 					como_compile(p->u1.binary_node.left);
 					como_compile(p->u1.binary_node.right);
+					//printf("\tIS_LESS_THAN\n");
 					emit(IS_EQUAL, newNull());
 				}
 				break;
@@ -603,6 +532,7 @@ static int como_compile(ast_node* p)
 				case AST_BINARY_OP_ADD: {
 					como_compile(p->u1.binary_node.left);
 					como_compile(p->u1.binary_node.right);
+					//printf("\tADD\n");
 					emit(IADD, newNull());
 				}
 				break;
