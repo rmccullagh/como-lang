@@ -126,14 +126,15 @@ static void como_var_dump(Object* args, Object** retval)
 #define IS_LESS_THAN 0x04
 #define JZ			     0x05
 #define IPRINT       0x06
-#define IADD         0x45
-#define JMP          0x52
-#define IRETURN      0xff
-#define NOP          0x42
+#define IADD         0x07
+#define JMP          0x08
+#define IRETURN      0x09
+#define NOP          0x0a
 #define LABEL        0x0b
 #define HALT         0x0c
 #define IS_EQUAL     0x0d
 #define IDIV         0x0e
+#define ITIMES       0x0f
 
 #define DEBUG_OBJECT(o) do { \
 	fprintf(stdout, "DEBUGGING OBJECT:\n\t"); \
@@ -195,6 +196,10 @@ static void debug_code_to_output(FILE *fp) {
 					fprintf(fp, "\tDIV\n");
 					break;
 				}
+				case ITIMES: {
+					fprintf(fp, "\tTIMES\n");
+					break;
+				}
 				case JMP: {
 					char *value = objectToString(c->op1);
 					fprintf(fp, "\tJMP %s\n", value);
@@ -224,14 +229,28 @@ static void debug_code_to_output(FILE *fp) {
 		fprintf(fp, "*** END CODE ***\n");
 }
 
+#define ENSURE_NUMERIC_OPERANDS \
+	if(O_TYPE(left) != IS_LONG && O_TYPE(right) != IS_LONG) { \
+		fprintf(stderr, "como: can't invoke binary operation on non numeric arguments\n"); \
+		exit(1); \
+	} \
+
 static void como_vm() {
-	
+
+#define TARGET(x) \
+	case x: \
+
+	#define VM_CONTINUE \
+		cg->pc++; \
+		break; \
+
 	//debug_code_to_output(stdout);
 
 	//return;
 
 	while(1) {
 		size_t pc = cg->pc;
+		
 		if(!(pc < cg->code->size)) {
 			fprintf(stderr, "pc is passed the size, pc=%zu, size=%zu\n",
 				pc, cg->code->size);
@@ -239,28 +258,21 @@ static void como_vm() {
 		}
 
 		op_code *c = cg->code->table[pc];
+		assert(c);
 		
-#ifdef DEBUG
-		fprintf(stderr, "pc=%zu\n", pc);
-#endif
-			assert(c);
-
-
 		switch(c->inst.opcode) {
-			case LOAD_CONST: {
+			TARGET(LOAD_CONST) {
 				PUSH(c->op1);
-				cg->pc++;
-				break;
+				VM_CONTINUE
 			}
-			case STORE_NAME: {
+			TARGET(STORE_NAME) {
 				Object *v;
 				POP(v);
 				mapInsert(cframe.cf_symtab, O_SVAL(c->op1)->value, v);
 				PUSH(v);
-				cg->pc++;
-				break;
+				VM_CONTINUE
 			}
-			case LOAD_NAME: {
+			TARGET(LOAD_NAME) {
 				Object *v = mapSearch(cframe.cf_symtab, O_SVAL(c->op1)->value);
 				if(v == NULL) {
 					fprintf(stderr, "Undefined variable %s\n", O_SVAL(c->op1)->value);
@@ -268,41 +280,32 @@ static void como_vm() {
 				} else {
 					PUSH(v);
 				}
-				cg->pc++;
-				break;
+				VM_CONTINUE
 			}
-			case IS_LESS_THAN: {
+			TARGET(IS_LESS_THAN) {
 				BINARY_OP_SETUP
-				if(objectValueIsLessThan(left, right)) {
-					PUSH(newLong(1));
-				} else {
-					PUSH(newLong(0));
-				}
-				cg->pc++;
-				break;
+				PUSH(newLong(objectValueIsLessThan(left, right)));
+				VM_CONTINUE
 			}
-			case JZ: {
+			TARGET(JZ) {
 				Object *cond;
 				POP(cond);
 				if(O_TYPE(cond) == IS_LONG && O_LVAL(cond) == 0) {
 					cg->pc = O_LVAL(c->op1);		
 					break;			
-				} else {
-					cg->pc++;
-				}
-				break;
+				} 
+				VM_CONTINUE
 			}
-			case IPRINT: {
+			TARGET(IPRINT) {
 				Object *value;
 				POP(value);
 				size_t len = 0;
 				char *sval = objectToStringLength(value, &len);
 				fprintf(stdout, "%s\n", sval);
 				free(sval);
-				cg->pc++;
-				break;
+				VM_CONTINUE
 			}
-			case IADD: {
+			TARGET(IADD) {
 				BINARY_OP_SETUP
 				if(O_TYPE(left) == IS_LONG && O_TYPE(right) == IS_LONG) {
 					PUSH(newLong(O_LVAL(left) + O_LVAL(right)));
@@ -318,41 +321,41 @@ static void como_vm() {
 					objectDestroy(s2);
 					PUSH(s3);	
 				}
-				cg->pc++;
-				break;
+				VM_CONTINUE
 			}
-			case IDIV: {
+			TARGET(IDIV) {
 				BINARY_OP_SETUP
-				if(O_TYPE(left) != IS_LONG && O_TYPE(right) != IS_LONG) {
-					fprintf(stderr, "como: Can't divide non numeric objects\n");
+				ENSURE_NUMERIC_OPERANDS
+				if(O_LVAL(right) == 0) {
+					fprintf(stderr, "como: can't divide by zero\n");
 					exit(1);
 				}
-				break;	
+				PUSH(newLong(O_LVAL(left) / O_LVAL(right)));
+				VM_CONTINUE
 			}
-			case JMP: {
+			TARGET(ITIMES) {
+				BINARY_OP_SETUP
+				ENSURE_NUMERIC_OPERANDS
+				PUSH(newLong(O_LVAL(left) * O_LVAL(right)));
+				VM_CONTINUE
+			}
+			TARGET(JMP) {
 				cg->pc = O_LVAL(c->op1);
 				break;
 			}
-			case NOP: {
-				cg->pc++;
-				break;
+			TARGET(NOP) {
+				VM_CONTINUE
 			}
-			case LABEL: {
-				cg->pc++;
-				break;
+			TARGET(LABEL) {
+				VM_CONTINUE
 			}
-			case HALT: {
+			TARGET(HALT) {
 				return;
 			}
-			case IS_EQUAL: {
+			TARGET(IS_EQUAL) {
 				BINARY_OP_SETUP
-				if(objectValueCompare(left, right)) {
-					PUSH(newLong(1)) ;
-				} else {
-					PUSH(newLong(0));
-				}
-				cg->pc++;
-				break;
+				PUSH(newLong(objectValueCompare(left, right)));
+				VM_CONTINUE
 			}
 		}
 	}
@@ -608,6 +611,9 @@ static int como_compile(ast_node* p)
 				}
 				break;
 				case AST_BINARY_OP_TIMES: {
+					como_compile(p->u1.binary_node.left);
+					como_compile(p->u1.binary_node.right);
+					emit(ITIMES, newNull());
 				} 
 				break;
 				case AST_BINARY_OP_ASSIGN: {
