@@ -61,9 +61,9 @@ typedef void* yyscan_t;
 
 %left T_CMP
 %left T_LTE
+%left T_NEQ
 %left '<'
 %left '>'
-%precedence '='
 %left '-'
 %left '+'
 %left '*'
@@ -86,6 +86,7 @@ typedef void* yyscan_t;
 %token T_CMP
 %token T_PRINT
 %token T_NOELSE
+%token T_NEQ
 
 
 %token <number> T_NUM
@@ -101,6 +102,7 @@ typedef void* yyscan_t;
 %type <ast> function_decl_statement
 %type <ast> optional_argument_list argument_list argument
 %type <ast> return_statement optional_expression
+%type <ast> assignment_statement print_statement
 
 %%
 
@@ -138,6 +140,19 @@ statement:
  return_statement { $$ = $1; }
 ;
 
+assignment_statement:
+	T_ID '=' expr {
+ 		$$ = ast_node_create_binary_op(AST_BINARY_OP_ASSIGN, ast_node_create_id($1), $3); 
+ 		free($1); 
+	}
+;
+
+print_statement:
+	T_PRINT '(' expr ')' {
+		$$ = ast_node_create_print($3);
+	}
+;
+
 return_statement:
  T_RETURN optional_expression ';' { $$ = ast_node_create_return($2); }
 ;
@@ -153,6 +168,10 @@ compound_statement:
 
 expression_statement:
  expr ';' { $$ = $1; }
+ | 
+ assignment_statement ';' { $$ = $1; }
+ |
+ print_statement ';' { $$ = $1; }
 ;
 
 if_statement_without_else:
@@ -218,18 +237,11 @@ expr:
  |
  expr '/' expr   { $$ = ast_node_create_binary_op(AST_BINARY_OP_DIV, $1, $3);   }
  |
- '(' expr ')'    { $$ = $2; }
- |
  T_NUM           { $$ = ast_node_create_number($1); }
  |
  T_ID            { $$ = ast_node_create_id($1);  free($1); }
  |
  T_STR_LIT       { $$ = ast_node_create_string_literal($1); free($1); }
- |
- T_ID '=' expr   { 
- 	$$ = ast_node_create_binary_op(AST_BINARY_OP_ASSIGN, ast_node_create_id($1), $3); 
- 	free($1); 
- 	}
  |
  expr '<' expr {
 	$$ = ast_node_create_binary_op(AST_BINARY_OP_LT, $1, $3);   
@@ -243,6 +255,10 @@ expr:
 	$$ = ast_node_create_binary_op(AST_BINARY_OP_CMP, $1, $3);   
  }
  |
+ expr T_NEQ expr {
+	$$ = ast_node_create_binary_op(AST_BINARY_OP_NEQ, $1, $3);   
+ }
+ |
  expr T_LTE expr {
 	$$ = ast_node_create_binary_op(AST_BINARY_OP_LTE, $1, $3);   
  }
@@ -250,9 +266,9 @@ expr:
  T_ID '(' optional_argument_list ')' {
 	$$ = ast_node_create_call(ast_node_create_id($1), $3, @1.first_line, @1.first_column);
   free($1);
- }
+	} 
  |
- T_PRINT '(' expr ')' { $$ = ast_node_create_print($3); }
+ '(' expr ')'    { $$ = $2; }
 ;
 
 %%

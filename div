@@ -1,0 +1,5 @@
+age = 10000000;
+while(age == 0 == 0) {
+	age = age / 10;
+	print(age);
+}

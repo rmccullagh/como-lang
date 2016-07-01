@@ -1,0 +1,5 @@
+age = 25;
+while(age != 0) {
+	print(age);
+	age = age - 1;
+}

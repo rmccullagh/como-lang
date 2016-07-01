@@ -120,21 +120,25 @@ static void como_var_dump(Object* args, Object** retval)
 	cg->return_value = NULL;
 }
 
-#define LOAD_CONST   0x01
-#define STORE_NAME   0x02
-#define LOAD_NAME    0x03
-#define IS_LESS_THAN 0x04
-#define JZ			     0x05
-#define IPRINT       0x06
-#define IADD         0x07
-#define JMP          0x08
-#define IRETURN      0x09
-#define NOP          0x0a
-#define LABEL        0x0b
-#define HALT         0x0c
-#define IS_EQUAL     0x0d
-#define IDIV         0x0e
-#define ITIMES       0x0f
+#define LOAD_CONST      0x01
+#define STORE_NAME      0x02
+#define LOAD_NAME       0x03
+#define IS_LESS_THAN    0x04
+#define JZ			        0x05
+#define IPRINT          0x06
+#define IADD            0x07
+#define JMP             0x08
+#define IRETURN         0x09
+#define NOP             0x0a
+#define LABEL           0x0b
+#define HALT            0x0c
+#define IS_EQUAL        0x0d
+#define IDIV            0x0e
+#define ITIMES          0x0f
+#define IMINUS          0x10
+#define IS_GREATER_THAN 0x11
+#define IS_NOT_EQUAL    0x12
+
 
 #define DEBUG_OBJECT(o) do { \
 	fprintf(stdout, "DEBUGGING OBJECT:\n\t"); \
@@ -192,6 +196,10 @@ static void debug_code_to_output(FILE *fp) {
 					fprintf(fp, "\tADD\n");
 					break;
 				}
+				case IMINUS: {
+					fprintf(fp, "\tSUB\n");
+					break;
+				}
 				case IDIV: {
 					fprintf(fp, "\tDIV\n");
 					break;
@@ -224,6 +232,14 @@ static void debug_code_to_output(FILE *fp) {
 					fprintf(fp, "\tIS_EQUAL\n");
 					break;
 				}
+				case IS_GREATER_THAN: {
+					fprintf(fp, "\tIS_GREATER_THAN\n");
+					break;
+				}
+				case IS_NOT_EQUAL: {
+					fprintf(fp, "\tIS_NOT_EQUAL\n");
+					break;
+				}
 			}
 		}
 		fprintf(fp, "*** END CODE ***\n");
@@ -244,9 +260,16 @@ static void como_vm() {
 		cg->pc++; \
 		break; \
 
-	//debug_code_to_output(stdout);
+#define OPERANDS_ARE_BOTH_NUMERIC \
+	(O_TYPE(left) == IS_LONG && O_TYPE(right) == IS_LONG)
 
-	//return;
+#define BINARY_OP_FREE
+#define FREE_OP(x)
+
+	if(getenv("DEBUG")) {
+		debug_code_to_output(stdout);
+		return;
+	}
 
 	while(1) {
 		size_t pc = cg->pc;
@@ -293,7 +316,8 @@ static void como_vm() {
 				if(O_TYPE(cond) == IS_LONG && O_LVAL(cond) == 0) {
 					cg->pc = O_LVAL(c->op1);		
 					break;			
-				} 
+				}
+			 	FREE_OP(cond);	
 				VM_CONTINUE
 			}
 			TARGET(IPRINT) {
@@ -303,13 +327,16 @@ static void como_vm() {
 				char *sval = objectToStringLength(value, &len);
 				fprintf(stdout, "%s\n", sval);
 				free(sval);
+				FREE_OP(value);
 				VM_CONTINUE
 			}
 			TARGET(IADD) {
 				BINARY_OP_SETUP
-				if(O_TYPE(left) == IS_LONG && O_TYPE(right) == IS_LONG) {
+				if(OPERANDS_ARE_BOTH_NUMERIC) {
 					PUSH(newLong(O_LVAL(left) + O_LVAL(right)));
 				}	else {
+					//Object *result;
+					//result = object_concat_helper(left, right);
 					char *sval = objectToString(left);
 					char *rval = objectToString(right);
 					Object *s1 = newString(sval);
@@ -321,6 +348,7 @@ static void como_vm() {
 					objectDestroy(s2);
 					PUSH(s3);	
 				}
+				BINARY_OP_FREE
 				VM_CONTINUE
 			}
 			TARGET(IDIV) {
@@ -331,12 +359,21 @@ static void como_vm() {
 					exit(1);
 				}
 				PUSH(newLong(O_LVAL(left) / O_LVAL(right)));
+				BINARY_OP_FREE
+				VM_CONTINUE
+			}
+			TARGET(IMINUS) {
+				BINARY_OP_SETUP
+				ENSURE_NUMERIC_OPERANDS
+				PUSH(newLong(O_LVAL(left) - O_LVAL(right)));
+				BINARY_OP_FREE
 				VM_CONTINUE
 			}
 			TARGET(ITIMES) {
 				BINARY_OP_SETUP
 				ENSURE_NUMERIC_OPERANDS
 				PUSH(newLong(O_LVAL(left) * O_LVAL(right)));
+				BINARY_OP_FREE
 				VM_CONTINUE
 			}
 			TARGET(JMP) {
@@ -355,6 +392,26 @@ static void como_vm() {
 			TARGET(IS_EQUAL) {
 				BINARY_OP_SETUP
 				PUSH(newLong(objectValueCompare(left, right)));
+				BINARY_OP_FREE
+				VM_CONTINUE
+			}
+			TARGET(IS_GREATER_THAN) {
+				BINARY_OP_SETUP
+				PUSH(newLong(
+							(long)
+								(!objectValueCompare(left, right) && 
+								 			!objectValueIsLessThan(left,right)
+								)
+						)
+				);
+				VM_CONTINUE
+			}
+			TARGET(IS_NOT_EQUAL) {
+				BINARY_OP_SETUP
+				PUSH(newLong(
+							(long)(!objectValueCompare(left, right))
+						)
+				);
 				VM_CONTINUE
 			}
 		}
@@ -435,6 +492,9 @@ static int is_truthy(Object* o)
 	if(!o)
 		return 0;
 	if(O_TYPE(o) == IS_LONG) {
+		return O_LVAL(o) ? 1 : 0;
+	}
+	if(O_TYPE(o) == IS_DOUBLE) {
 		return O_DVAL(o) ? 1 : 0;
 	}
 	if(O_TYPE(o) == IS_NULL) {
@@ -486,13 +546,11 @@ static void emit(unsigned char op, Object *arg) {
 	if(cg->code->size >= cg->code->capacity) {
 		assert(0);
 	}
-
 	cg->code->table[cg->code->size++] = i;
 }
 
 static int como_compile(ast_node* p)
 {
-	int lbl1, lbl2;
 
 	if(!p)
 		return 0;
@@ -543,10 +601,10 @@ static int como_compile(ast_node* p)
 
 
 			como_compile(p->u1.while_node.body);
-			//printf("\tjmp\tL%03d\n", O_LVAL(l));
+			
 			emit(JMP, newLong(O_LVAL(l)));
-    	//printf("L%03d:\n", cg->code->size);
-    	Object *l3 = newLong(cg->code->size);
+    	
+			Object *l3 = newLong(cg->code->size);
     	
 			/**
 			 * Now go back to the first label generated here (in this case )
@@ -588,6 +646,9 @@ static int como_compile(ast_node* p)
 				}
 				break;
 				case AST_BINARY_OP_GT: {
+					como_compile(p->u1.binary_node.left);
+					como_compile(p->u1.binary_node.right);
+					emit(IS_GREATER_THAN, newNull());
 				}
 				break;
 				case AST_BINARY_OP_CMP: {
@@ -596,7 +657,16 @@ static int como_compile(ast_node* p)
 					emit(IS_EQUAL, newNull());
 				}
 				break;
+				case AST_BINARY_OP_NEQ: {
+					como_compile(p->u1.binary_node.left);
+					como_compile(p->u1.binary_node.right);
+					emit(IS_NOT_EQUAL, newNull());
+				}
+				break;
 				case AST_BINARY_OP_MINUS: {
+					como_compile(p->u1.binary_node.left);
+					como_compile(p->u1.binary_node.right);
+					emit(IMINUS, newNull());
 				}
 				break;
 				case AST_BINARY_OP_DIV:
