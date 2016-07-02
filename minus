@@ -3,3 +3,14 @@ while(age != 0) {
 	print(age);
 	age = age - 1;
 }
+
+age = 25;
+print(-age);
+
+func get_age() {
+  return 15;
+}
+
+print(-get_age());
+
+print(-1 * 5);

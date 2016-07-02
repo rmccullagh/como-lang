@@ -20,6 +20,9 @@
 
 #include <stddef.h>
 
+#define COMO_FAILURE 1
+#define COMO_SUCCESS 0
+
 //#define COMO_DEBUG 1
 
 typedef struct como_global {

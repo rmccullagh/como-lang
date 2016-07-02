@@ -1,0 +1,16 @@
+func get_space() {
+  return " ";
+}
+
+func make_name(first, last) {
+  age = 1;
+  print(first);
+  print(last);
+  print(age);
+  return first + get_space() + last;
+}
+
+name = make_name("Ryan", "McCullagh");
+
+print(name);
+

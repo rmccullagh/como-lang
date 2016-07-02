@@ -1,0 +1,4 @@
+age = 25;
+year = 2016;
+print(age <= year);
+print(15 <= 15);

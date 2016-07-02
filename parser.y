@@ -62,6 +62,7 @@ typedef void* yyscan_t;
 %left T_CMP
 %left T_LTE
 %left T_NEQ
+%left T_GTE
 %left '<'
 %left '>'
 %left '-'
@@ -87,7 +88,8 @@ typedef void* yyscan_t;
 %token T_PRINT
 %token T_NOELSE
 %token T_NEQ
-
+%token T_GTE
+%token T_INC
 
 %token <number> T_NUM
 %token <id> T_ID
@@ -237,12 +239,6 @@ expr:
  |
  expr '/' expr   { $$ = ast_node_create_binary_op(AST_BINARY_OP_DIV, $1, $3);   }
  |
- T_NUM           { $$ = ast_node_create_number($1); }
- |
- T_ID            { $$ = ast_node_create_id($1);  free($1); }
- |
- T_STR_LIT       { $$ = ast_node_create_string_literal($1); free($1); }
- |
  expr '<' expr {
 	$$ = ast_node_create_binary_op(AST_BINARY_OP_LT, $1, $3);   
  }
@@ -263,10 +259,29 @@ expr:
 	$$ = ast_node_create_binary_op(AST_BINARY_OP_LTE, $1, $3);   
  }
  |
+ expr T_GTE expr {
+ 	$$ = ast_node_create_binary_op(AST_BINARY_OP_GTE, $1, $3); 
+ }
+ |
+ T_ID T_INC {
+ 	$$ =ast_node_create_unary_op(AST_UNARY_OP_POSTFIX_INC, ast_node_create_id($1));
+  	free($1);
+ }
+ |
  T_ID '(' optional_argument_list ')' {
 	$$ = ast_node_create_call(ast_node_create_id($1), $3, @1.first_line, @1.first_column);
-  free($1);
-	} 
+  	free($1);
+ } 
+ |
+ '-' expr {
+ 	$$ = ast_node_create_unary_op(AST_UNARY_OP_MINUS, $2);
+ }
+ |
+ T_NUM           { $$ = ast_node_create_number($1); }
+ |
+ T_ID            { $$ = ast_node_create_id($1);  free($1); }
+ |
+ T_STR_LIT       { $$ = ast_node_create_string_literal($1); free($1); }
  |
  '(' expr ')'    { $$ = $2; }
 ;

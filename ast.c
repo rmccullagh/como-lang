@@ -22,6 +22,15 @@
 #include "ast.h"
 #include "globals.h"
 
+ast_node *ast_node_create_unary_op(ast_unary_op_type type, ast_node *expr)
+{
+	ast_node* retval = malloc(sizeof(ast_node));
+	retval->type = AST_NODE_TYPE_UNARY_OP;
+	retval->u1.unary_node.type = type;
+	retval->u1.unary_node.expr = expr;
+	return retval;
+}
+
 ast_node* ast_node_create_number(long value)
 {
 	ast_node* retval = malloc(sizeof(ast_node));

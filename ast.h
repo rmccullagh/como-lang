@@ -27,16 +27,21 @@
  */
 typedef enum {
 	AST_NODE_TYPE_NUMBER, AST_NODE_TYPE_STRING,
-	AST_NODE_TYPE_ID, AST_NODE_TYPE_UNDEFINED,
+	AST_NODE_TYPE_ID,
 	AST_NODE_TYPE_STATEMENT_LIST, AST_NODE_TYPE_BIN_OP,
 	AST_NODE_TYPE_IF, AST_NODE_TYPE_WHILE, AST_NODE_TYPE_FUNC_DECL, 
 	AST_NODE_TYPE_CALL, AST_NODE_TYPE_RET, AST_NODE_TYPE_PRINT,
+	AST_NODE_TYPE_UNARY_OP,
 } ast_node_type;
+
+typedef enum {
+	AST_UNARY_OP_POSTFIX_INC, AST_UNARY_OP_MINUS,
+} ast_unary_op_type;
 
 typedef enum {
 	AST_BINARY_OP_ADD, AST_BINARY_OP_MINUS, AST_BINARY_OP_ASSIGN,
 	AST_BINARY_OP_TIMES, AST_BINARY_OP_DIV, AST_BINARY_OP_CMP,
-	AST_BINARY_OP_REM, AST_BINARY_OP_LT, AST_BINARY_OP_LTE,
+	AST_BINARY_OP_LT, AST_BINARY_OP_LTE,
 	AST_BINARY_OP_GT, AST_BINARY_OP_GTE, AST_BINARY_OP_NEQ,
 } ast_binary_op_type;
 
@@ -60,6 +65,11 @@ typedef struct {
 	ast_node* left;
 	ast_node* right;
 } ast_node_binary;
+
+typedef struct {
+	ast_unary_op_type type;
+	ast_node* expr;
+} ast_node_unary;
 
 typedef struct {
 	ast_node* condition;
@@ -106,6 +116,7 @@ struct ast_node {
 		ast_node_id		      id_node;
 		ast_node_statements	statements_node;
 		ast_node_binary		  binary_node;
+		ast_node_unary        unary_node;
 		ast_node_if		      if_node;
 		ast_node_while		  while_node;
 		ast_node_function   function_node;
@@ -115,6 +126,7 @@ struct ast_node {
 	} u1;
 };
 
+extern ast_node *ast_node_create_unary_op(ast_unary_op_type, ast_node *);
 extern ast_node* ast_node_create_number(long value);
 extern ast_node* ast_node_create_statement_list(size_t count, ...);
 extern void ast_node_statement_list_push(ast_node* node, ast_node* value);
@@ -136,6 +148,6 @@ extern ast_node* ast_node_create_string_literal(const char* str);
  */
 extern void ast_node_free(ast_node* node);
 extern void ast_node_dump_tree(ast_node* node);
-extern void ast_compile(const char* file, ast_node* program);
+extern void ast_compile(const char *filename, ast_node* program);
 
 #endif

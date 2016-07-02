@@ -65,6 +65,8 @@ D   [0-9]
 "=="            { return T_CMP;    }
 "!="            { return T_NEQ;    }
 "<="            { return T_LTE;    }
+">="            { return T_GTE;    }
+"++"            { return T_INC;    }
 
 {WHITE_SPACE}	{ /* Skipping Blanks Today */ }
 {L}{A}*         {

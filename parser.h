@@ -1,4 +1,4 @@
-/* A Bison parser, made by GNU Bison 3.0.  */
+/* A Bison parser, made by GNU Bison 3.0.2.  */
 
 /* Bison interface for Yacc-like parsers in C
 
@@ -60,16 +60,18 @@ typedef void* yyscan_t;
     T_CMP = 258,
     T_LTE = 259,
     T_NEQ = 260,
-    T_IF = 261,
-    T_ELSE = 262,
-    T_WHILE = 263,
-    T_FUNC = 264,
-    T_RETURN = 265,
-    T_PRINT = 266,
-    T_NOELSE = 267,
-    T_NUM = 268,
-    T_ID = 269,
-    T_STR_LIT = 270
+    T_GTE = 261,
+    T_IF = 262,
+    T_ELSE = 263,
+    T_WHILE = 264,
+    T_FUNC = 265,
+    T_RETURN = 266,
+    T_PRINT = 267,
+    T_NOELSE = 268,
+    T_INC = 269,
+    T_NUM = 270,
+    T_ID = 271,
+    T_STR_LIT = 272
   };
 #endif
 
@@ -85,7 +87,7 @@ union YYSTYPE
 	char* stringliteral;
 	ast_node* ast;
 
-#line 89 "parser.h" /* yacc.c:1909  */
+#line 91 "parser.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

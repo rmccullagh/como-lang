@@ -25,54 +25,47 @@
 #include "ast.h"
 #include "stack.h"
 #include "globals.h"
+#include "como_opcode.h"
 
-#define C_USER_FUNC (1 << 0)
-#define C_EXT_FUNC  (1 << 1)
+static void como_print_stack_trace(void);
 
-typedef void(*como_ext_func)(Object*, Object**);
-
-static void debug(const char* format, ...)
-{
-#ifdef COMO_DEBUG
-	fprintf(stderr, "DEBUG: ");
-	va_list args;
-	va_start (args, format);
-	vfprintf (stderr, format, args);
-	va_end (args);
-#endif
-}
+#include "comodebug.h"
 
 #define CF_STACKSIZE 1024
+#define COMO_DEFAULT_OP_ARRAY_CAPACITY 512
 
 typedef struct como_frame {
-		Object *cf_symtab;
-		Object *cf_stack[CF_STACKSIZE];
 		size_t cf_sp;
+		Object *cf_stack[CF_STACKSIZE];
+		Object *cf_symtab;
+		Object *cf_retval;
 } como_frame;
 
-static como_frame cframe;
-
 static int como_frame_init(como_frame *frame) {
-	frame->cf_symtab = newMap(2);
 	frame->cf_sp = 0;
-	return 1;
+	frame->cf_symtab = newMap(2);
+	frame->cf_retval = NULL;
+
+	if(frame->cf_symtab == NULL) 
+		return COMO_FAILURE;
+	return COMO_SUCCESS;
 }
 
 #define PUSH(e) do { \
-		if(cframe.cf_sp + 1 >= CF_STACKSIZE) { \
-					printf("error stack overflow tried to push onto #%zu\n", cframe.cf_sp + 1); \
+		if(cframe->cf_sp + 1 >= CF_STACKSIZE) { \
+					printf("error stack overflow tried to push onto #%zu\n", cframe->cf_sp + 1); \
 					exit(1); \
 				} \
-		cframe.cf_stack[cframe.cf_sp++] = e; \
+		cframe->cf_stack[cframe->cf_sp++] = e; \
 } while(0)
 
 #define POP(n) do { \
-		if(cframe.cf_sp - 1 == SIZE_MAX) { \
-					printf("%s:%d: error stack underflow, tried to go before zero: %zu\n", \
-							__func__, __LINE__, cframe.cf_sp); \
+		if(cframe->cf_sp - 1 == SIZE_MAX) { \
+					printf("%s:%d: error in opcode %d: stack underflow, tried to go before zero: %zu\n", \
+							__func__, __LINE__, c->inst.opcode, cframe->cf_sp); \
 					exit(1); \
 				} \
-		n = cframe.cf_stack[--cframe.cf_sp]; \
+		n = cframe->cf_stack[--cframe->cf_sp]; \
 } while(0)
 
 
@@ -91,54 +84,94 @@ typedef struct op_array {
 	op_code **table;
 } op_array;
 
-#define MAX_LABELS 1024
+static int op_array_init(op_array *o) {
+	o->size = 0;
+	o->capacity = COMO_DEFAULT_OP_ARRAY_CAPACITY;
+	o->table = calloc(COMO_DEFAULT_OP_ARRAY_CAPACITY, 
+		sizeof(op_code));
 
-static int should_only_show_code = 0;
+	if(o->table == NULL) 
+		return COMO_FAILURE;
 
-typedef struct compiler_context {
-	int lbl;
-	size_t label_table[MAX_LABELS];
-	size_t label_total;
-	Object* filename;
-	const char* active_function_name;
-	Object* symbol_table;
-	Object* current_symbol_table;
-	como_stack* function_call_stack;
-	como_stack *global_call_stack;
-	Object* return_value;
-	size_t pc;
-	op_array *code;
-} compiler_context;
-
-static compiler_context* cg;
-
-static void como_var_dump(Object* args, Object** retval)
-{
-	printf("%s()\n", __func__);
-	OBJECT_DUMP(args);
-	*retval = NULL;
-	cg->return_value = NULL;
+	return COMO_SUCCESS;
 }
 
-#define LOAD_CONST      0x01
-#define STORE_NAME      0x02
-#define LOAD_NAME       0x03
-#define IS_LESS_THAN    0x04
-#define JZ			        0x05
-#define IPRINT          0x06
-#define IADD            0x07
-#define JMP             0x08
-#define IRETURN         0x09
-#define NOP             0x0a
-#define LABEL           0x0b
-#define HALT            0x0c
-#define IS_EQUAL        0x0d
-#define IDIV            0x0e
-#define ITIMES          0x0f
-#define IMINUS          0x10
-#define IS_GREATER_THAN 0x11
-#define IS_NOT_EQUAL    0x12
 
+typedef struct compiler_context {
+	size_t pc;
+	op_array code;
+	Object *function_table;
+} compiler_context;
+
+typedef struct como_function {
+	size_t fn_arg_count;
+	Object *arguments;
+	compiler_context *fn_ctx;
+	como_frame *fn_frame;
+} como_function;
+
+
+typedef struct ex_globals {
+	Object *filename;
+	como_stack* function_call_stack;
+	como_stack *frame_stack;
+} ex_globals;
+
+
+static ex_globals *eg;
+static compiler_context *cg;
+static como_frame *cframe;
+
+static void como_print_stack_trace(void)
+{
+	como_stack* top = eg->function_call_stack;
+	while(top != NULL) {
+		Array* call_info = O_AVAL(((Object*)(top->value)));
+		fprintf(stderr, "  at %s (%s:%ld:%ld)\n", 
+			O_SVAL(call_info->table[0])->value, O_SVAL(eg->filename)->value, 
+			O_LVAL(call_info->table[1]), 
+			O_LVAL(call_info->table[2]));
+
+		top = top->next;
+	}
+}
+
+static void call_stack_push(Object *fname, Object *lineno, Object *colno)
+{
+	Object *call_info = newArray(3);
+	arrayPushEx(call_info, fname);
+	arrayPushEx(call_info, lineno);
+	arrayPushEx(call_info, colno);
+
+	como_stack_push(&eg->function_call_stack, (void *)call_info);
+}
+
+static void frame_stack_push(compiler_context *f) {
+	como_stack_push(&eg->frame_stack, (void *)f);
+}
+
+static void executor_init(const char *filename, ex_globals *e) {
+	e->filename = newString(filename);
+	e->function_call_stack = NULL;
+	e->frame_stack = NULL;
+
+	Object *call_info = newArray(3);
+	arrayPushEx(call_info, newString("__main__"));
+	arrayPushEx(call_info, newLong(0L));
+	arrayPushEx(call_info, newLong(0L));
+
+	como_stack_push(&e->function_call_stack, (void *)call_info);
+}
+
+
+static int compiler_context_init(compiler_context *ctx)
+{
+	ctx->pc = 0;
+	ctx->function_table = newMap(4);
+	if(op_array_init(&ctx->code) == COMO_FAILURE)
+		return COMO_FAILURE;
+	return COMO_SUCCESS;
+}
 
 #define DEBUG_OBJECT(o) do { \
 	fprintf(stdout, "DEBUGGING OBJECT:\n\t"); \
@@ -157,9 +190,21 @@ static void debug_code_to_output(FILE *fp) {
 		
 		fprintf(fp, "*** BEGIN CODE ***\n");
 		size_t i;
-		for(i = 0; i < cg->code->size; i++) {
-			op_code *c = cg->code->table[i];
+		for(i = 0; i < cg->code.size; i++) {
+			op_code *c = cg->code.table[i];
 			switch(c->inst.opcode) {
+				case CALL_FUNCTION: {
+					char *value = objectToString(c->op1);
+					fprintf(fp, "\tCALL_FUNCTION %s\n", value);
+					free(value);
+					break;
+				}
+				case DEFINE_FUNCTION: {
+					char *value = objectToString(c->op1);
+					fprintf(fp, "\tDEFINE_FUNCTION %s\n", value);
+					free(value);
+					break;
+				}
 				case LOAD_CONST: {
 					char *value = objectToString(c->op1);
 					fprintf(fp, "\tLOAD_CONST %s\n", value);
@@ -240,6 +285,18 @@ static void debug_code_to_output(FILE *fp) {
 					fprintf(fp, "\tIS_NOT_EQUAL\n");
 					break;
 				}
+				case IS_GREATER_THAN_OR_EQUAL: {
+					fprintf(fp, "\tIS_GREATER_THAN_OR_EQUAL\n");
+					break;
+				}
+				case IS_LESS_THAN_OR_EQUAL: {
+					fprintf(fp, "\tIS_LESS_THAN_OR_EQUAL\n");
+					break;
+				}
+				case POSTFIX_INC: {
+					fprintf(fp, "\tPOSTFIX_INC\n");
+					break;
+				}
 			}
 		}
 		fprintf(fp, "*** END CODE ***\n");
@@ -251,20 +308,23 @@ static void debug_code_to_output(FILE *fp) {
 		exit(1); \
 	} \
 
-static void como_vm() {
-
 #define TARGET(x) \
 	case x: \
 
-	#define VM_CONTINUE \
-		cg->pc++; \
-		break; \
+#define VM_CONTINUE \
+	cg->pc++; \
+	break; \
 
 #define OPERANDS_ARE_BOTH_NUMERIC \
 	(O_TYPE(left) == IS_LONG && O_TYPE(right) == IS_LONG)
 
 #define BINARY_OP_FREE
 #define FREE_OP(x)
+
+static void como_vm(void);
+static void emit(unsigned char, Object *);
+
+static void como_vm(void) {
 
 	if(getenv("DEBUG")) {
 		debug_code_to_output(stdout);
@@ -274,16 +334,54 @@ static void como_vm() {
 	while(1) {
 		size_t pc = cg->pc;
 		
-		if(!(pc < cg->code->size)) {
+		if(!(pc < cg->code.size)) {
 			fprintf(stderr, "pc is passed the size, pc=%zu, size=%zu\n",
-				pc, cg->code->size);
+				pc, cg->code.size);
 			assert(0);
 		}
 
-		op_code *c = cg->code->table[pc];
+		op_code *c = cg->code.table[pc];
 		assert(c);
 		
 		switch(c->inst.opcode) {
+			TARGET(POSTFIX_INC) {
+				Object *name = mapSearchEx(cframe->cf_symtab, O_SVAL(c->op1)->value);
+				if(name == NULL) {
+					fprintf(stderr, "Undefined variable %s\n", O_SVAL(c->op1)->value);
+					PUSH(newLong(0));	
+				} else {
+					if(O_TYPE(name) != IS_LONG) {
+						como_error_noreturn("unsupported value for POSTFIX_INC");
+					} else {
+						long oldvalue = O_LVAL(name);
+						O_LVAL(name) = oldvalue + 1;
+						PUSH(newLong(oldvalue));
+					}
+				}
+				VM_CONTINUE
+			}	
+			TARGET(UNARY_MINUS) {
+				Object *value;
+				POP(value);
+				if(O_TYPE(value) == IS_LONG) {
+					PUSH(newLong(-O_LVAL(value)));
+				} else {
+					como_error_noreturn("unsupported value for UNARY_MINUS");
+				}
+				VM_CONTINUE
+			}
+			TARGET(IRETURN) {
+				if(O_LVAL(c->op1) == 0L) {
+					como_debug("returning from function without return value");
+					cframe->cf_retval = newLong(0L);
+				} else {
+					POP(cframe->cf_retval);
+				}
+				return;
+			}
+			TARGET(DEFINE_FUNCTION) {
+				VM_CONTINUE
+			}
 			TARGET(LOAD_CONST) {
 				PUSH(c->op1);
 				VM_CONTINUE
@@ -291,12 +389,12 @@ static void como_vm() {
 			TARGET(STORE_NAME) {
 				Object *v;
 				POP(v);
-				mapInsert(cframe.cf_symtab, O_SVAL(c->op1)->value, v);
+				mapInsertEx(cframe->cf_symtab, O_SVAL(c->op1)->value, v);
 				PUSH(v);
 				VM_CONTINUE
 			}
 			TARGET(LOAD_NAME) {
-				Object *v = mapSearch(cframe.cf_symtab, O_SVAL(c->op1)->value);
+				Object *v = mapSearchEx(cframe->cf_symtab, O_SVAL(c->op1)->value);
 				if(v == NULL) {
 					fprintf(stderr, "Undefined variable %s\n", O_SVAL(c->op1)->value);
 					PUSH(newLong(0));
@@ -334,7 +432,7 @@ static void como_vm() {
 				BINARY_OP_SETUP
 				if(OPERANDS_ARE_BOTH_NUMERIC) {
 					PUSH(newLong(O_LVAL(left) + O_LVAL(right)));
-				}	else {
+				} else {
 					//Object *result;
 					//result = object_concat_helper(left, right);
 					char *sval = objectToString(left);
@@ -398,144 +496,116 @@ static void como_vm() {
 			TARGET(IS_GREATER_THAN) {
 				BINARY_OP_SETUP
 				PUSH(newLong(
-							(long)
-								(!objectValueCompare(left, right) && 
-								 			!objectValueIsLessThan(left,right)
-								)
-						)
+							(long)objectValueIsGreaterThan(left, right)
+					)
 				);
 				VM_CONTINUE
 			}
 			TARGET(IS_NOT_EQUAL) {
 				BINARY_OP_SETUP
 				PUSH(newLong(
-							(long)(!objectValueCompare(left, right))
-						)
+					(long)(!objectValueCompare(left, right))
+					)
 				);
+				VM_CONTINUE
+			}
+			TARGET(IS_GREATER_THAN_OR_EQUAL) {
+				BINARY_OP_SETUP
+				PUSH(newLong(
+					(long)
+						(objectValueCompare(left, right) ||
+						 	objectValueIsGreaterThan(left,right)
+						)
+					)
+				);
+				VM_CONTINUE		
+			}
+			TARGET(IS_LESS_THAN_OR_EQUAL) {
+				BINARY_OP_SETUP
+				PUSH(newLong(
+					(long)
+						(objectValueCompare(left, right) ||
+						 	objectValueIsLessThan(left, right)
+						)
+					)
+				);
+				VM_CONTINUE		
+			}
+			TARGET(CALL_FUNCTION) {
+				Object *code = NULL;
+				como_stack* top = eg->frame_stack;
+				while(top != NULL) {
+					compiler_context *tmpctx = (compiler_context *)top->value;
+					code = mapSearchEx(tmpctx->function_table, O_SVAL(c->op1)->value);
+					if(code != NULL) {
+						break;
+					}
+					top = top->next;
+				}
+				
+				if(code == NULL) {
+					como_error_noreturn("call to undefined function '%s'", O_SVAL(c->op1)->value);
+				}
+
+				Object *total_args;
+				Object *colno;
+				Object *lineno;
+
+				POP(total_args);
+				POP(colno);
+				POP(lineno);
+
+				como_function *fn;
+				ssize_t i;
+
+				fn = (como_function *)O_PTVAL(code);
+				Array *arguments = O_AVAL(fn->arguments);
+
+				if(fn->fn_arg_count != (size_t)O_LVAL(total_args)) {
+					como_error_noreturn("function '%s' expects exactly %zu arguments, %ld given",
+						O_SVAL(c->op1)->value, fn->fn_arg_count, O_LVAL(total_args));
+				}
+
+				i = (ssize_t)fn->fn_arg_count;
+				while(i--) {
+					Object *arg_value;
+					POP(arg_value);
+					Object *arg_name = arguments->table[i];
+					mapInsertEx(fn->fn_frame->cf_symtab, O_SVAL(arg_name)->value, 
+						arg_value);
+				}
+
+				/* save context */
+				compiler_context *old_ctx = cg;
+				como_frame *_old_cframe = cframe;
+
+				como_debug("calling function '%s' with %ld arguments", O_SVAL(c->op1)->value,
+					O_LVAL(total_args));
+
+				cg = fn->fn_ctx;
+				cframe = fn->fn_frame;
+
+				if(cg->code.table[cg->code.size - 1]->inst.opcode != IRETURN) {
+					emit(LOAD_CONST, newLong(0L));
+					emit(IRETURN, newLong(1L));
+				}
+
+				call_stack_push(c->op1, lineno, colno);
+				frame_stack_push(old_ctx);
+
+				(void)como_vm();
+
+				Object *retval = cframe->cf_retval;
+
+				/* restore context */
+				cg = old_ctx;
+				cframe = _old_cframe;
+				PUSH(retval);
 				VM_CONTINUE
 			}
 		}
 	}
 }
-
-
-static void compiler_init(void)
-{
-	cg = malloc(sizeof(compiler_context));
-	cg->lbl = 0;
-	cg->pc = 0;
-	cg->code = malloc(sizeof(op_array));
-	cg->code->size = 0;
-	cg->code->capacity = 1024;
-	cg->code->table = calloc(64, sizeof(op_code));
-
-
-	cg->label_total = 0;
-	cg->symbol_table = newMap(2);
-	cg->current_symbol_table = NULL;
-	cg->function_call_stack = NULL;
-	cg->global_call_stack = NULL;
-	cg->return_value = NULL;
-	cg->active_function_name = "__main__";
-	cg->filename = NULL;
-
-	Object* var_dump = newFunction(como_var_dump);	
-	O_MRKD(var_dump) = C_EXT_FUNC;
-	mapInsert(cg->symbol_table, "var_dump", var_dump);
-	objectDestroy(var_dump);
-
-}
-
-static compiler_context* cg_context_create()
-{
-	compiler_context* ctx = malloc(sizeof(compiler_context));
-	ctx->symbol_table = NULL;
-	ctx->current_symbol_table = NULL;
-	ctx->function_call_stack = NULL;
-	ctx->return_value = NULL;
-	ctx->active_function_name = "<unknown>";	
-	return ctx;	
-}
-
-void dump_fn_call_stack(void)
-{
-	como_stack* top = cg->function_call_stack;
-	while(top != NULL) {
-		Array* call_info = O_AVAL(((Object*)(top->value)));
-		printf("  at %s (%s:%ld:%ld)\n", 
-			O_SVAL(call_info->table[0])->value, O_SVAL(cg->filename)->value, 
-			O_LVAL(call_info->table[1]), 
-			O_LVAL(call_info->table[2]));
-
-		top = top->next;
-	}
-}
-
-static void como_print_stack_trace(void)
-{
-	como_stack* top = cg->global_call_stack;
-	while(top != NULL) {
-		Array* call_info = O_AVAL(((Object*)(top->value)));
-		printf("  at %s (%s:%ld:%ld)\n", 
-			O_SVAL(call_info->table[0])->value, O_SVAL(cg->filename)->value, 
-			O_LVAL(call_info->table[1]), 
-			O_LVAL(call_info->table[2]));
-
-		top = top->next;
-	}
-}
-
-static Object* ex(ast_node* p);
-
-static int is_truthy(Object* o)
-{
-	if(!o)
-		return 0;
-	if(O_TYPE(o) == IS_LONG) {
-		return O_LVAL(o) ? 1 : 0;
-	}
-	if(O_TYPE(o) == IS_DOUBLE) {
-		return O_DVAL(o) ? 1 : 0;
-	}
-	if(O_TYPE(o) == IS_NULL) {
-		return 0;
-	}	
-	if(O_TYPE(o) == IS_BOOL) {
-		return O_BVAL(o) ? 1 : 0;
-	}
-
-	return 0;
-}
-
-static Object* call_info_create(const char* name, int line, int col)
-{
-	Object *call_info = newArray(3);
-	
-	Object* fname = newString(name);
-	arrayPush(call_info, fname);
-	objectDestroy(fname);
-
-	Object* lineno = newLong(line);
-	arrayPush(call_info, lineno);
-	objectDestroy(lineno); 
-
-	Object* colno = newLong(col);
-	arrayPush(call_info, colno);
-	objectDestroy(colno);
-
-	return call_info;
-}
-
-static void call_stack_push(Object *call_info)
-{
-	como_stack_push(&cg->function_call_stack, call_info);
-}
-
-static void como_stack_push_ex(como_stack **stack, Object *call_info)
-{
-	como_stack_push(stack, call_info);
-}
-
 
 static void emit(unsigned char op, Object *arg) {
 	op_code *i = malloc(sizeof(op_code));
@@ -543,17 +613,15 @@ static void emit(unsigned char op, Object *arg) {
 	inst.opcode = op;
 	i->inst = inst;
 	i->op1 = arg;
-	if(cg->code->size >= cg->code->capacity) {
+	if(cg->code.size >= cg->code.capacity) {
 		assert(0);
 	}
-	cg->code->table[cg->code->size++] = i;
+	cg->code.table[cg->code.size++] = i;
 }
 
 static int como_compile(ast_node* p)
 {
-
-	if(!p)
-		return 0;
+	assert(p);
 
 	switch(p->type) {
 		default:
@@ -565,7 +633,7 @@ static int como_compile(ast_node* p)
 		break;
 		case AST_NODE_TYPE_PRINT:
 			como_compile(p->u1.print_node.expr);
-			emit(IPRINT, newNull());
+			emit(IPRINT, NULL);
 		break;
 		case AST_NODE_TYPE_NUMBER:
 			emit(LOAD_CONST, newLong(p->u1.number_value));
@@ -574,7 +642,12 @@ static int como_compile(ast_node* p)
 			emit(LOAD_NAME, newString(p->u1.id_node.name));
 		break;
 		case AST_NODE_TYPE_RET:
-			emit(IRETURN, newNull());
+			if(p->u1.return_node.expr != NULL) {
+				como_compile(p->u1.return_node.expr);
+				emit(IRETURN, newLong(1L));
+			} else {
+				emit(IRETURN, newLong(0L));
+			}
 		break;
 		case AST_NODE_TYPE_STATEMENT_LIST: {
 			size_t i;
@@ -582,9 +655,10 @@ static int como_compile(ast_node* p)
 				ast_node* stmt = p->u1.statements_node.statement_list[i];
 				como_compile(stmt);
 			}
-		} break;
+		} 
+		break;
 		case AST_NODE_TYPE_WHILE: {
-			Object *l = newLong(cg->code->size);
+			Object *l = newLong(cg->code.size);
 			/**
 			 * The marker of the start of the while loop
 			 */
@@ -604,13 +678,12 @@ static int como_compile(ast_node* p)
 			
 			emit(JMP, newLong(O_LVAL(l)));
     	
-			Object *l3 = newLong(cg->code->size);
+			Object *l3 = newLong(cg->code.size);
     	
 			/**
 			 * Now go back to the first label generated here (in this case )
 			 */
 			
-			cg->label_table[cg->label_total++] = cg->code->size - 1;
 			/**
 			 * The upper JZ is targeted to this instruction
 			 */
@@ -621,76 +694,154 @@ static int como_compile(ast_node* p)
 		}
 		break;
 		case AST_NODE_TYPE_IF: {
-		} 
-		break;
-		case AST_NODE_TYPE_FUNC_DECL: {	
-		} 
-		break;
-		case AST_NODE_TYPE_CALL: {
+			Object *l2 = newLong(0);
+			Object *l4 = newLong(0);
+			como_compile(p->u1.if_node.condition);
+		
+			emit(JZ, l2);
+
+			como_compile(p->u1.if_node.b1);
+
+			emit(JMP, l4);
+
+			
+			Object *l3 = newLong(cg->code.size);
+    	
+    		emit(LABEL, l3);
+
+			if(p->u1.if_node.b2 != NULL) {
+				como_compile(p->u1.if_node.b2);
+			}
+    	
+			O_LVAL(l2) = O_LVAL(l3);
+			O_LVAL(l4) = cg->code.size;
+
+			emit(LABEL, newLong(cg->code.size));
 
 		} 
 		break;
+		case AST_NODE_TYPE_FUNC_DECL: {	
+			emit(DEFINE_FUNCTION, newString(p->u1.function_node.name));
+
+			/* save context */
+			compiler_context *old_ctx = cg;
+			como_frame *_old_cframe = cframe;
+
+			compiler_context *ctx_fn = malloc(sizeof(compiler_context));
+			como_frame *_cframe_fn = malloc(sizeof(como_frame));
+
+			if(compiler_context_init(ctx_fn) == COMO_FAILURE) {
+				como_error_noreturn("failed to initialize compiler context for function def.");
+			}
+			
+			cg = ctx_fn;
+
+			if(como_frame_init(_cframe_fn) == COMO_FAILURE) {
+				como_error_noreturn("failed to aquire execution frame for function defn.");
+			}
+
+			cframe = _cframe_fn;
+			como_function *fn = malloc(sizeof(como_function));
+			fn->arguments = newArray(2);
+
+			size_t i;
+			for(i = 0; i < p->u1.function_node.parameter_list->u1.statements_node.count; i++) {
+				ast_node *arg = p->u1.function_node.parameter_list->u1.statements_node.statement_list[i];
+				assert(arg->type == AST_NODE_TYPE_ID);
+				arrayPushEx(fn->arguments, newString(arg->u1.id_node.name));
+			}
+
+			como_compile(p->u1.function_node.body);
+
+			fn->fn_arg_count = p->u1.function_node.parameter_list->u1.statements_node.count;
+			fn->fn_ctx = ctx_fn;
+			fn->fn_frame = _cframe_fn;
+
+			mapInsertEx(old_ctx->function_table, p->u1.function_node.name, newPointer((void *)fn));
+			/* restore context */
+			cg = old_ctx;
+			cframe = _old_cframe;
+
+		} 
+		break;
+		case AST_NODE_TYPE_CALL: {
+			como_compile(p->u1.call_node.arguments);
+			emit(LOAD_CONST, newLong((long)p->u1.call_node.lineno));
+			emit(LOAD_CONST, newLong((long)p->u1.call_node.colno));
+			emit(LOAD_CONST, newLong(p->u1.call_node.arguments->u1.statements_node.count));
+			emit(CALL_FUNCTION, newString(p->u1.call_node.id->u1.id_node.name));
+			break;
+		} 
+		break;
+		case AST_NODE_TYPE_UNARY_OP: {
+			switch(p->u1.unary_node.type) {
+				case AST_UNARY_OP_POSTFIX_INC: {
+					emit(POSTFIX_INC, newString(p->u1.unary_node.expr->u1.id_node.name));
+					break;
+				}
+				case AST_UNARY_OP_MINUS: {
+					como_compile(p->u1.unary_node.expr);
+					emit(UNARY_MINUS, NULL);
+					break;
+				}
+			}
+		}
+		break;
 		case AST_NODE_TYPE_BIN_OP: {
 			switch(p->u1.binary_node.type) {
-				default:
-					printf("%s(): invalid binary op(%d)\n", __func__, p->u1.binary_node.type);
-					exit(1);
-				break;
-				case AST_BINARY_OP_LTE: {
-				}
-				break;
-				case AST_BINARY_OP_LT: {
+				case AST_BINARY_OP_LTE:
 					como_compile(p->u1.binary_node.left);
 					como_compile(p->u1.binary_node.right);
-					emit(IS_LESS_THAN, newNull());
-				}
-				break;
-				case AST_BINARY_OP_GT: {
+					emit(IS_LESS_THAN_OR_EQUAL, NULL);
+				break;	
+				case AST_BINARY_OP_GTE:
 					como_compile(p->u1.binary_node.left);
 					como_compile(p->u1.binary_node.right);
-					emit(IS_GREATER_THAN, newNull());
-				}
+					emit(IS_GREATER_THAN_OR_EQUAL, NULL);
 				break;
-				case AST_BINARY_OP_CMP: {
+				case AST_BINARY_OP_LT: 
 					como_compile(p->u1.binary_node.left);
 					como_compile(p->u1.binary_node.right);
-					emit(IS_EQUAL, newNull());
-				}
+					emit(IS_LESS_THAN, NULL);
 				break;
-				case AST_BINARY_OP_NEQ: {
+				case AST_BINARY_OP_GT:
 					como_compile(p->u1.binary_node.left);
 					como_compile(p->u1.binary_node.right);
-					emit(IS_NOT_EQUAL, newNull());
-				}
+					emit(IS_GREATER_THAN, NULL);
 				break;
-				case AST_BINARY_OP_MINUS: {
+				case AST_BINARY_OP_CMP:
 					como_compile(p->u1.binary_node.left);
 					como_compile(p->u1.binary_node.right);
-					emit(IMINUS, newNull());
-				}
+					emit(IS_EQUAL, NULL);
+				break;
+				case AST_BINARY_OP_NEQ:
+					como_compile(p->u1.binary_node.left);
+					como_compile(p->u1.binary_node.right);
+					emit(IS_NOT_EQUAL, NULL);
+				break;
+				case AST_BINARY_OP_MINUS: 
+					como_compile(p->u1.binary_node.left);
+					como_compile(p->u1.binary_node.right);
+					emit(IMINUS, NULL);
 				break;
 				case AST_BINARY_OP_DIV:
 					como_compile(p->u1.binary_node.left);
 					como_compile(p->u1.binary_node.right);
-					emit(IDIV, newNull());
+					emit(IDIV, NULL);
 				break;
-				case AST_BINARY_OP_ADD: {
+				case AST_BINARY_OP_ADD:
 					como_compile(p->u1.binary_node.left);
 					como_compile(p->u1.binary_node.right);
-					emit(IADD, newNull());
-				}
+					emit(IADD, NULL);
 				break;
-				case AST_BINARY_OP_TIMES: {
+				case AST_BINARY_OP_TIMES:
 					como_compile(p->u1.binary_node.left);
 					como_compile(p->u1.binary_node.right);
-					emit(ITIMES, newNull());
-				} 
+					emit(ITIMES, NULL);
 				break;
-				case AST_BINARY_OP_ASSIGN: {
-					const char* id = p->u1.binary_node.left->u1.id_node.name;
+				case AST_BINARY_OP_ASSIGN: 
 					como_compile(p->u1.binary_node.right);
-					emit(STORE_NAME, newString(id));			
-				} 
+					emit(STORE_NAME, newString(p->u1.binary_node.left->u1.id_node.name));			
 				break;
 			}	
 		} break;
@@ -699,39 +850,34 @@ static int como_compile(ast_node* p)
 }
 
 
-void ast_compile(const char* filename, ast_node* program)
+void ast_compile(const char *filename, ast_node* program)
 {
-	if(!program) {
-		printf("%s(): unexpected empty node\n", __func__);
-		exit(1);
+	assert(program);
+
+	compiler_context ctx;
+	como_frame _cframe;
+	ex_globals _exg;
+
+	if(compiler_context_init(&ctx) == COMO_FAILURE) {
+		como_error_noreturn("failed to initialize compiler context");
 	}
 
-	compiler_init();
-
-	como_stack_push_ex(&cg->global_call_stack, call_info_create(
- 		"__main__", 0, 0
-  ));
-
-	cg->filename = newString(filename);	
 	
-	//Object* ret = ex(program);
+	cg = &ctx;
+	cframe = &_cframe;
+	eg = &_exg;
+
+	executor_init(filename, &_exg);
+
+
 	(void )como_compile(program);
-	emit(HALT, newNull());
+	emit(HALT, NULL);
 
-	como_frame_init(&cframe);
-	como_vm();
-
-	objectDestroy(cg->symbol_table);
-	//objectDestroy(ret);
-	objectDestroy(cg->filename);
-	
-	como_stack* top = cg->function_call_stack;
-	while(top != NULL) {
-		como_stack* next = top->next;
-		objectDestroy(((Object*)(top->value)));
-		free(top);	
-		top = next;
+	if(como_frame_init(&_cframe) == COMO_FAILURE) {
+		como_error_noreturn("failed to aquire execution frame");
 	}
 
-	free(cg);	
+	frame_stack_push(&ctx);
+
+	como_vm();
 }
