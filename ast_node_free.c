@@ -3,12 +3,22 @@
 
 #include "ast.h"
 #include "globals.h"
+#include "comodebug.h"
 
 void ast_node_free(ast_node* p)
 {
 	if(!p)
 		return;
 	switch(p->type) {
+		case AST_NODE_TYPE_UNARY_OP:
+			ast_node_free(p->u1.unary_node.expr);
+			free(p);
+		break;
+		case AST_NODE_TYPE_WHILE:
+			ast_node_free(p->u1.while_node.condition);
+			ast_node_free(p->u1.while_node.body);
+			free(p);
+		break;
 		case AST_NODE_TYPE_STRING:
 			free(p->u1.string_value.value);
 			free(p);
@@ -60,9 +70,7 @@ void ast_node_free(ast_node* p)
 			free(p);		
 		break;
 		default:
-			#ifdef COMO_DEBUG
-			printf("\n%s(): not implemented\n", __func__);
-			#endif
+			como_error_noreturn("p->type not implemented (%d)", p->type);
 		break;
 	}
 }
