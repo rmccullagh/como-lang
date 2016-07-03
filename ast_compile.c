@@ -594,7 +594,10 @@ static void como_vm(void) {
 				}
 
 				call_stack_push(c->op1, lineno, colno);
-				frame_stack_push(old_ctx);
+				/*
+				 * push this frame onto the frame stack
+				 */
+				frame_stack_push(fn->fn_ctx);
 
 				(void)como_vm();
 
@@ -604,6 +607,9 @@ static void como_vm(void) {
 				cg = old_ctx;
 				cframe = _old_cframe;
 				PUSH(retval);
+				/*
+				 * TODO pop the frame_stack and kill all objects in it 
+				 */
 				VM_CONTINUE
 			}
 		}
