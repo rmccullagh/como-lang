@@ -1,7 +1,7 @@
 func isodd(num) {
 	i = 0;
 	odd = 0;
-	while((i == num) == 0) {
+	while(i != num) {
 		if(odd == 0) {
 			odd = 1;
 		} else {

@@ -173,12 +173,6 @@ static int compiler_context_init(compiler_context *ctx)
 	return COMO_SUCCESS;
 }
 
-#define DEBUG_OBJECT(o) do { \
-	fprintf(stdout, "DEBUGGING OBJECT:\n\t"); \
-	OBJECT_DUMP((o)); \
-	fprintf(stdout, "\n"); \
-	fflush(stdout); \
-} while (0) 
 
 #define BINARY_OP_SETUP \
 		Object *left; \

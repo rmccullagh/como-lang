@@ -25,7 +25,8 @@
 
 int yyerror(YYLTYPE * lvalp, ast_node** ast, yyscan_t scanner, const char* msg)
 {
-	printf("parse error: %s in file \"%s\" on line %d:%d\n", msg, get_file_name(), lvalp->first_line, lvalp->first_column);
+	printf("parse error: %s in file \"%s\" on line %d:%d\n", msg, 
+		get_file_name(), lvalp->first_line, lvalp->first_column);
 	
 	exit(1);
 }

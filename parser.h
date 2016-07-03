@@ -40,7 +40,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 35 "parser.y" /* yacc.c:1909  */
+#line 36 "parser.y" /* yacc.c:1909  */
 
 
 #ifndef YY_TYPEDEF_YY_SCANNER_T
@@ -80,7 +80,7 @@ typedef void* yyscan_t;
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 55 "parser.y" /* yacc.c:1909  */
+#line 56 "parser.y" /* yacc.c:1909  */
 
 	long number;
 	char* id;

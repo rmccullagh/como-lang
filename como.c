@@ -30,6 +30,10 @@ static void init_globals(void) {
 	globals.filename_length = 0;
 };
 
+static void como_shutdown(void) {
+	free(globals.filename);
+}
+
 static void set_file_name(const char* name) {
 	size_t len = strlen(name);
 	globals.filename = malloc(len + 1);
@@ -91,7 +95,7 @@ int main(int argc, char** argv)
 
 	ast_compile(argv[0], program);
 
-	//ast_node_free(program);
+	como_shutdown();
 
 	return 0;
 }
