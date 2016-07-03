@@ -28,7 +28,7 @@
 #include "como_opcode.h"
 
 static void como_print_stack_trace(void);
-
+#define COMO_COMPILER 1 
 #include "comodebug.h"
 
 #define CF_STACKSIZE 1024
@@ -397,7 +397,7 @@ static void como_vm(void) {
 				Object *v = mapSearchEx(cframe->cf_symtab, O_SVAL(c->op1)->value);
 				if(v == NULL) {
 					fprintf(stderr, "Undefined variable %s\n", O_SVAL(c->op1)->value);
-					PUSH(newLong(0));
+					PUSH(newLong(0L));
 				} else {
 					PUSH(v);
 				}
@@ -571,7 +571,10 @@ static void como_vm(void) {
 					Object *arg_value;
 					POP(arg_value);
 					Object *arg_name = arguments->table[i];
-					mapInsertEx(fn->fn_frame->cf_symtab, O_SVAL(arg_name)->value, 
+					/* It's important to copy the value of arg_value (mapInsert) here
+					   as, if we don't, then arguments will actually be passed by reference, not value
+					 */
+					mapInsert(fn->fn_frame->cf_symtab, O_SVAL(arg_name)->value, 
 						arg_value);
 				}
 
@@ -772,7 +775,6 @@ static int como_compile(ast_node* p)
 			emit(CALL_FUNCTION, newString(p->u1.call_node.id->u1.id_node.name));
 			break;
 		} 
-		break;
 		case AST_NODE_TYPE_UNARY_OP: {
 			switch(p->u1.unary_node.type) {
 				case AST_UNARY_OP_POSTFIX_INC: {
@@ -869,15 +871,17 @@ void ast_compile(const char *filename, ast_node* program)
 
 	executor_init(filename, &_exg);
 
-
 	(void )como_compile(program);
 	emit(HALT, NULL);
+	
 
 	if(como_frame_init(&_cframe) == COMO_FAILURE) {
 		como_error_noreturn("failed to aquire execution frame");
 	}
 
 	frame_stack_push(&ctx);
+
+	ast_node_free(program);
 
 	como_vm();
 }
