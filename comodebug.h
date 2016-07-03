@@ -28,7 +28,9 @@ static void __attribute__ ((noreturn)) como_error_noreturn_ex(const char *f,
 	vfprintf (stderr, format, args);
 	va_end (args);
 	fputc('\n', stderr);
+	#ifdef COMO_COMPILER
 	como_print_stack_trace();
+	#endif
 	fflush(stderr);	
 	exit(1);
 }
