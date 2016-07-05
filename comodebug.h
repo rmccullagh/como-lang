@@ -21,14 +21,14 @@ static void como_debug_ex(const char *f,
 static void __attribute__ ((noreturn)) como_error_noreturn_ex(const char *f,
 		const char *fn, int ln, const char* format, ...)
 {
-	fputc('\n', stderr);
-	fprintf(stderr, "%s:%s:%d: fatal: ", f, fn, ln);
+	fprintf(stderr, ANSI_COLOR_RED  "%s:%s:%d: fatal: ", f, fn, ln);
 	va_list args;
 	va_start (args, format);
 	vfprintf (stderr, format, args);
 	va_end (args);
-	fputc('\n', stderr);
+	fprintf(stderr, ANSI_COLOR_RESET  "\n");
 	#ifdef COMO_COMPILER
+	fprintf(stderr, "Traceback (most recent call first):\n");
 	como_print_stack_trace();
 	#endif
 	fflush(stderr);	

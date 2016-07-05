@@ -3,20 +3,25 @@ func get_space() {
 }
 
 func make_name(first, last) {
-  func get_space() {
-    func i() {
-      return " ";
-    }
-    return i();
-  }
-
-  age = 1;
-  print(first);
-  print(last);
-  print(age);
   return first + get_space() + last;
 }
 
-name = make_name("Ryan", "McCullagh");
 
-print(name);
+
+func iprint(value) {
+  age = 25;
+  print(value);
+  return;
+}
+
+func init() {
+  num = 0;
+
+  while(num != 5) {
+    iprint(num);
+    num++;
+  }
+  print(age);
+}
+
+init();

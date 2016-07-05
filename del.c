@@ -39,9 +39,23 @@ static int object_map_delete(Object *o, const char *key)
 }
 
 
-static void object_print_stats(Object *o)
+static void map_print_stats(Object *o)
 {
 	Map *map = O_MVAL(o);
+
+	uint32_t i;
+	uint32_t chainlen = 0;
+
+	for(i = 0; i < map->capacity; i++) {
+		Bucket *b = map->buckets[i];
+
+		if(b == NULL)
+			continue;
+		while(b) {
+			chainlen++;
+			b = b->next;
+		}
+	}
 
 	fprintf(stdout, "Map stats:\n");
 	fprintf(stdout, " table capacity: %u\n", map->capacity);
@@ -60,7 +74,7 @@ static int object_map_add(Map *map, const char *key,
 	uint32_t index = _object_map_hash_key(map, key, keylen);
 	Bucket *b = map->buckets[index];
 	
-
+	return 1;
 }
 
 static Map *object_map_create() 

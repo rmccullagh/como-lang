@@ -70,6 +70,7 @@ typedef void* yyscan_t;
 %left '+'
 %left '*'
 %left '/'
+%left '%'
 
 %token END 0 "EOF"
 %token '-'
@@ -246,6 +247,10 @@ expr:
  |
  expr '>' expr {
 	$$ = ast_node_create_binary_op(AST_BINARY_OP_GT, $1, $3);   
+ }
+ |
+ expr '%' expr {
+	$$ = ast_node_create_binary_op(AST_BINARY_OP_REM, $1, $3);
  }
  |
  expr T_CMP expr { 

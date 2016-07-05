@@ -43,6 +43,7 @@ typedef enum {
 	AST_BINARY_OP_TIMES, AST_BINARY_OP_DIV, AST_BINARY_OP_CMP,
 	AST_BINARY_OP_LT, AST_BINARY_OP_LTE,
 	AST_BINARY_OP_GT, AST_BINARY_OP_GTE, AST_BINARY_OP_NEQ,
+	AST_BINARY_OP_REM,
 } ast_binary_op_type;
 
 typedef struct ast_node ast_node;

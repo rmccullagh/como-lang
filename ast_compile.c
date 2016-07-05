@@ -28,6 +28,7 @@
 #include "como_opcode.h"
 
 static void como_print_stack_trace(void);
+static void debug_code_to_output(FILE *);
 #define COMO_COMPILER 1 
 #include "comodebug.h"
 
@@ -36,6 +37,7 @@ static void como_print_stack_trace(void);
 
 typedef struct como_frame {
 		size_t cf_sp;
+		Object *cf_fname;
 		Object *cf_stack[CF_STACKSIZE];
 		Object *cf_symtab;
 		Object *cf_retval;
@@ -43,6 +45,7 @@ typedef struct como_frame {
 
 static int como_frame_init(como_frame *frame) {
 	frame->cf_sp = 0;
+	frame->cf_fname = NULL;
 	frame->cf_symtab = newMap(2);
 	frame->cf_retval = NULL;
 
@@ -60,14 +63,18 @@ static int como_frame_init(como_frame *frame) {
 } while(0)
 
 #define POP(n) do { \
-		if(cframe->cf_sp - 1 == SIZE_MAX) { \
-					printf("%s:%d: error in opcode %d: stack underflow, tried to go before zero: %zu\n", \
-							__func__, __LINE__, c->inst.opcode, cframe->cf_sp); \
-					exit(1); \
-				} \
-		n = cframe->cf_stack[--cframe->cf_sp]; \
+		if(cframe->cf_sp == 0) { \
+			n = cframe->cf_stack[0]; \
+		} else { \
+			n = cframe->cf_stack[--cframe->cf_sp]; \
+		} \
 } while(0)
 
+#define OBJ_DECREF(o) do { \
+	if(--O_REFCNT((o)) == 0) { \
+		objectDestroy(o); \
+	} \
+} while(0)
 
 typedef struct como_i {
 	unsigned char opcode;
@@ -187,6 +194,16 @@ static void debug_code_to_output(FILE *fp) {
 		for(i = 0; i < cg->code.size; i++) {
 			op_code *c = cg->code.table[i];
 			switch(c->inst.opcode) {
+				case IREM: {
+					fprintf(fp, "\tIREM\n");
+					break;
+				}
+				case IRETURN: {
+					char *value = objectToString(c->op1);
+					fprintf(fp, "\tIRETURN %s\n", value);
+					free(value);
+					break;
+				}
 				case CALL_FUNCTION: {
 					char *value = objectToString(c->op1);
 					fprintf(fp, "\tCALL_FUNCTION %s\n", value);
@@ -352,6 +369,7 @@ static void como_vm(void) {
 						PUSH(newLong(oldvalue));
 					}
 				}
+				OBJ_DECREF(c->op1);
 				VM_CONTINUE
 			}	
 			TARGET(UNARY_MINUS) {
@@ -383,7 +401,10 @@ static void como_vm(void) {
 			TARGET(STORE_NAME) {
 				Object *v;
 				POP(v);
-				mapInsertEx(cframe->cf_symtab, O_SVAL(c->op1)->value, v);
+				/* make sure to copy the value of v 
+				   because v might be coming from a variable
+				 */
+				mapInsertEx(cframe->cf_symtab, O_SVAL(c->op1)->value, copyObject(v));
 				PUSH(v);
 				VM_CONTINUE
 			}
@@ -418,6 +439,7 @@ static void como_vm(void) {
 				size_t len = 0;
 				char *sval = objectToStringLength(value, &len);
 				fprintf(stdout, "%s\n", sval);
+				fflush(stdout);
 				free(sval);
 				FREE_OP(value);
 				VM_CONTINUE
@@ -465,6 +487,13 @@ static void como_vm(void) {
 				BINARY_OP_SETUP
 				ENSURE_NUMERIC_OPERANDS
 				PUSH(newLong(O_LVAL(left) * O_LVAL(right)));
+				BINARY_OP_FREE
+				VM_CONTINUE
+			}
+			TARGET(IREM) {
+				BINARY_OP_SETUP
+				ENSURE_NUMERIC_OPERANDS
+				PUSH(newLong(O_LVAL(left) % O_LVAL(right)));
 				BINARY_OP_FREE
 				VM_CONTINUE
 			}
@@ -528,13 +557,16 @@ static void como_vm(void) {
 			TARGET(CALL_FUNCTION) {
 				Object *code = NULL;
 				como_stack* top = eg->frame_stack;
+				como_stack *prev = NULL;
+				compiler_context *tmpctx = NULL;
 				while(top != NULL) {
-					compiler_context *tmpctx = (compiler_context *)top->value;
+					tmpctx = (compiler_context *)top->value;
 					code = mapSearchEx(tmpctx->function_table, O_SVAL(c->op1)->value);
 					if(code != NULL) {
 						break;
 					}
 					top = top->next;
+					prev = top;
 				}
 				
 				if(code == NULL) {
@@ -579,10 +611,12 @@ static void como_vm(void) {
 				como_debug("calling function '%s' with %ld arguments", O_SVAL(c->op1)->value,
 					O_LVAL(total_args));
 
+
 				cg = fn->fn_ctx;
 				cframe = fn->fn_frame;
 
 				if(cg->code.table[cg->code.size - 1]->inst.opcode != IRETURN) {
+					como_debug("inserting IRETURN for function %s", O_SVAL(c->op1)->value);
 					emit(LOAD_CONST, newLong(0L));
 					emit(IRETURN, newLong(1L));
 				}
@@ -593,17 +627,41 @@ static void como_vm(void) {
 				 */
 				frame_stack_push(fn->fn_ctx);
 
+				//return;
 				(void)como_vm();
 
-				Object *retval = cframe->cf_retval;
+				Object *retval = copyObject(cframe->cf_retval);
 
+				como_debug("stack pointer is at %zu", cframe->cf_sp);
+				
 				/* restore context */
 				cg = old_ctx;
 				cframe = _old_cframe;
-				PUSH(retval);
+				
+				/* BEGIN RESET */
+				fn->fn_frame->cf_retval = NULL;
+				objectDestroy(fn->fn_frame->cf_symtab);
+				fn->fn_frame->cf_symtab = newMap(2);
+				fn->fn_frame->cf_sp = 0;
+				fn->fn_ctx->pc = 0;
+				size_t ii;
+				for(ii = 0; ii < CF_STACKSIZE; ii++) {
+					fn->fn_frame->cf_stack[ii] = NULL;
+				}
+				/* END RESET */
+
 				/*
 				 * TODO pop the frame_stack and kill all objects in it 
 				 */
+				 
+				if(prev) {
+					como_debug("popping frame stack");
+					prev->next = top->next;
+				} else {
+					eg->frame_stack = top->next;
+				}
+			
+				PUSH(retval);
 				VM_CONTINUE
 			}
 		}
@@ -743,6 +801,7 @@ static int como_compile(ast_node* p)
 				como_error_noreturn("failed to aquire execution frame for function defn.");
 			}
 
+	
 			cframe = _cframe_fn;
 			como_function *fn = malloc(sizeof(como_function));
 			fn->arguments = newArray(2);
@@ -791,6 +850,11 @@ static int como_compile(ast_node* p)
 		break;
 		case AST_NODE_TYPE_BIN_OP: {
 			switch(p->u1.binary_node.type) {
+				case AST_BINARY_OP_REM:
+					como_compile(p->u1.binary_node.left);
+					como_compile(p->u1.binary_node.right);
+					emit(IREM, NULL);
+				break;	
 				case AST_BINARY_OP_LTE:
 					como_compile(p->u1.binary_node.left);
 					como_compile(p->u1.binary_node.right);
@@ -881,7 +945,11 @@ void ast_compile(const char *filename, ast_node* program)
 
 	frame_stack_push(&ctx);
 
+
 	ast_node_free(program);
 
 	como_vm();
+
+		OBJECT_DUMP_EX(cframe->cf_symtab);
+
 }

@@ -1,27 +1,17 @@
-func isodd(num) {
-	i = 0;
-	odd = 0;
-	while(i != num) {
-		if(odd == 0) {
-			odd = 1;
-		} else {
-			odd = 0;
-		}
-		i = i + 1;
-	}
-	return odd;
+func iseven(num) {
+	return num % 2 == 0;
 }
 
 func print_even(num)
 {
 	while(num) {
-		if(isodd(num)) {
-			print(num + " is odd");
-		} else {
+		if(iseven(num)) {
 			print(num + " is even");
+		} else {
+			print(num + " is odd");
 		}
 		num = num - 1;
 	}
 }
 
-print_even(4);
+print_even(5);

@@ -1,5 +1,7 @@
-x = 0;
-while (x < 10) {
-	print("x is currently " + x);
-	x = x + 1;
-}
+a = 1;
+b = a;
+a + 1;
+
+print(a);
+print(b);
+

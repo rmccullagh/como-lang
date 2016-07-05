@@ -1,6 +1,7 @@
 #ifndef COMO_OPCODE_H
 #define COMO_OPCODE_H
 
+#define INONE                    0x00
 #define LOAD_CONST               0x01
 #define STORE_NAME               0x02
 #define LOAD_NAME                0x03
@@ -25,5 +26,10 @@
 #define CALL_FUNCTION            0x16
 #define POSTFIX_INC              0x17
 #define UNARY_MINUS              0x18
+#define IREM					 0x19
+
+const char * const opcode_strval[] = {
+	[INONE] = "INONE"
+};
 
 #endif /* !COMO_OPCODE_H */
