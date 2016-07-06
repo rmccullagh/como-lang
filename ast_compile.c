@@ -616,7 +616,7 @@ static void como_vm(void) {
 				cframe = fn->fn_frame;
 
 				if(cg->code.table[cg->code.size - 1]->inst.opcode != IRETURN) {
-					como_debug("inserting IRETURN for function %s", O_SVAL(c->op1)->value);
+					como_debug("automatically inserting IRETURN for function %s", O_SVAL(c->op1)->value);
 					emit(LOAD_CONST, newLong(0L));
 					emit(IRETURN, newLong(1L));
 				}
