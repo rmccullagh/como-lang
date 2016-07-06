@@ -40,3 +40,7 @@ func print_range(a, b) {
 	}
 }
 ```
+
+
+# License
+Please see the file LICENSE located in the root directory of the project.
