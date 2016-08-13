@@ -1,0 +1,757 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"old",
+				"old_current_symbol_table"
+			],
+			[
+				"op",
+				"oparray"
+			],
+			[
+				"par",
+				"parameter_count"
+			],
+			[
+				"Object",
+				"ObjectPrettyTypeLiteral"
+			],
+			[
+				"LIBOB",
+				"LIBOBJECT_API"
+			],
+			[
+				"_como_event",
+				"_como_event_file_create"
+			],
+			[
+				"OBJECT",
+				"OBJECT_MAP_INITIAL_SIZE"
+			],
+			[
+				"object",
+				"objectDestroy"
+			],
+			[
+				"frame_stac",
+				"frame_stack_push"
+			],
+			[
+				"cf_s",
+				"cf_symtab"
+			],
+			[
+				"IS_GREATER_",
+				"IS_GREATER_THAN_OR_EQUAL"
+			],
+			[
+				"AS",
+				"AST_BINARY_OP_LTE"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "parser.y",
+			"settings":
+			{
+				"buffer_size": 6579,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "lexer.l",
+			"settings":
+			{
+				"buffer_size": 3392,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "como.c",
+			"settings":
+			{
+				"buffer_size": 21585,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "globals.h",
+			"settings":
+			{
+				"buffer_size": 1016,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "como_compiler.h",
+			"settings":
+			{
+				"buffer_size": 1746,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "como_compiler.c",
+			"settings":
+			{
+				"buffer_size": 2179,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "como_execute.h",
+			"settings":
+			{
+				"buffer_size": 349,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "b",
+			"settings":
+			{
+				"buffer_size": 62,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "ast.h",
+			"settings":
+			{
+				"buffer_size": 4745,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "ast.c",
+			"settings":
+			{
+				"buffer_size": 6283,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 216.0,
+		"last_filter": "Package Control: ",
+		"selected_items":
+		[
+			[
+				"Package Control: ",
+				"Package Control: Install Package"
+			],
+			[
+				"Pack",
+				"Preferences: Browse Packages"
+			]
+		],
+		"width": 400.0
+	},
+	"console":
+	{
+		"height": 319.0,
+		"history":
+		[
+			"import urllib.request,os,hashlib; h = '2915d1851351e5ee549c20394736b442' + '8bc59f460fa1548d1514676163dafc88'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://packagecontrol.io/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)",
+			"import urllib.request,os,hashlib; h = '2915d1851351e5ee549c20394736b442' + '8bc59f460fa1548d1514676163dafc88'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://packagecontrol.io/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by);",
+			"Package-Control",
+			"ls=1",
+			"ls",
+			"import urllib.request,os,hashlib; h = '2915d1851351e5ee549c20394736b442' + '8bc59f460fa1548d1514676163dafc88'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://packagecontrol.io/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)",
+			"clear",
+			"os.path()",
+			"os.path",
+			"import os",
+			"import",
+			"dir = 1",
+			"dir",
+			"help",
+			"ls"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"//EAGLE/share/como-lang"
+	],
+	"file_history":
+	[
+		"//EAGLE/share/como-lang/como_execute.c",
+		"//EAGLE/share/como-lang/como_execute.h",
+		"//EAGLE/share/como-lang/globals.h",
+		"//EAGLE/share/como-lang/a",
+		"//EAGLE/share/como-lang/como_opcode.h",
+		"//EAGLE/share/como-lang/ast_node_free.c",
+		"/C/Users/ryan/AppData/Roaming/Sublime Text 3/Packages/User/Preferences.sublime-settings",
+		"/C/Users/ryan/AppData/Roaming/Sublime Text 3/Packages/Default/Preferences.sublime-settings",
+		"//EAGLE/share/como-lang/compile_debug.c",
+		"//EAGLE/share/como-lang/como_compiler.c",
+		"//EAGLE/share/como-lang/ast_compile.c",
+		"/C/Users/ryan/AppData/Roaming/Sublime Text 3/Packages/User/Package Control.sublime-settings",
+		"//EAGLE/share/como-lang/parser.y",
+		"//EAGLE/share/m/doc.txt",
+		"//EAGLE/share/m/net/log.py",
+		"//EAGLE/share/m/net/Transport.py",
+		"//EAGLE/share/m/net/tcpclient.py",
+		"//EAGLE/share/m/client.py",
+		"/C/Users/ryan/Desktop/Untitled Document.pdf",
+		"/C/Program Files/Sublime Text 3/sublime.py",
+		"/C/Program Files/Sublime Text 3/Packages/Batch File.sublime-package",
+		"/C/Users/ryan/AppData/Roaming/Sublime Text 3/Packages/User/Default (Windows).sublime-keymap",
+		"/C/Users/ryan/AppData/Roaming/Sublime Text 3/Installed Packages/Package Control.sublime-package",
+		"/C/Users/ryan/AppData/Roaming/Sublime Text 3/Installed Packages/0_package_control_loader.sublime-package",
+		"/C/Users/ryan/AppData/Roaming/Sublime Text 3/Packages/User/JSON.sublime-settings",
+		"//EAGLE/share/m/comonet.c",
+		"//EAGLE/share/m/client.c",
+		"//EAGLE/share/m/main.c",
+		"/C/Users/ryan/AppData/Roaming/Sublime Text 3/Packages/Package Control/Package Control.sublime-settings",
+		"//EAGLE/share/m/comoclient.c",
+		"//EAGLE/share/libobject/test/Makefile.am",
+		"//EAGLE/share/libobject/test/old",
+		"//EAGLE/share/libobject/test/objectTypeStr",
+		"//EAGLE/share/libobject/src/objectTypeStr.c",
+		"//EAGLE/share/libobject/test/map.c",
+		"//EAGLE/share/libobject/.gitignore",
+		"//EAGLE/share/libobject/test/test_common.h",
+		"//EAGLE/share/libobject/test/libObjectVersion.c",
+		"//EAGLE/share/m/comoevent.h",
+		"//EAGLE/share/m/server.c",
+		"//EAGLE/share/m/Makefile",
+		"//EAGLE/share/m/comoevent.c",
+		"//EAGLE/share/m/comoclient.h",
+		"//EAGLE/share/m/comoutil.h",
+		"//EAGLE/share/m/comoutil.c",
+		"//EAGLE/share/m/como.c",
+		"//eagle/share/nginx-1.11.1/src/event/modules/ngx_epoll_module.c",
+		"//EAGLE/share/como-lang/cmp.como",
+		"//EAGLE/share/como-lang/del.c",
+		"//EAGLE/share/como-lang/comodebug.h",
+		"//EAGLE/share/como-lang/como_compiler.h",
+		"//EAGLE/share/como-lang/Makefile",
+		"//EAGLE/share/como-lang/ast_node_dump_tree.c",
+		"//EAGLE/share/como-lang/func",
+		"//EAGLE/share/como-lang/como_compiler.H",
+		"//EAGLE/share/como-lang/ast.h",
+		"//EAGLE/share/como-lang/ast.c",
+		"//EAGLE/share/como-lang/como.c",
+		"//EAGLE/share/como-lang/stringcat.c",
+		"//EAGLE/share/php-src/sapi/fpm/fpm/events/epoll.c",
+		"//EAGLE/share/php-src/sapi/fpm/fpm/fpm_sockets.c",
+		"//EAGLE/share/php-src/sapi/fpm/fpm/fpm_process_ctl.c",
+		"//EAGLE/share/php-src/sapi/fpm/fpm/fpm_signals.c",
+		"//EAGLE/share/php-src/sapi/fpm/fpm/fpm_main.c",
+		"//EAGLE/share/php-src/sapi/fpm/fpm/fpm_request.c",
+		"//EAGLE/share/php-src/sapi/fpm/fpm/fpm_unix.c",
+		"//EAGLE/share/php-src/sapi/fpm/fpm/event.c",
+		"//EAGLE/share/php-src/sapi/fpm/fpm/fpm.h",
+		"//EAGLE/share/php-src/sapi/fpm/fpm/fpm_conf.h",
+		"//EAGLE/share/php-src/sapi/fpm/fpm/fpm_stdio.c",
+		"//EAGLE/share/php-src/sapi/fpm/fpm/fpm_php.c",
+		"//EAGLE/share/php-src/sapi/fpm/fpm/fpm_children.c",
+		"//EAGLE/share/php-src/sapi/fpm/fpm/zlog.c",
+		"//EAGLE/share/php-src/sapi/fpm/fpm/zlog.h",
+		"//EAGLE/share/php-src/sapi/fpm/tests/001.phpt",
+		"//EAGLE/share/php-src/Zend/zend_ast.h",
+		"//EAGLE/share/php-src/Zend/zend_language_parser.y",
+		"//EAGLE/share/php-src/Zend/zend_ast.c",
+		"//EAGLE/share/php-src/Zend/zend_language_scanner.l",
+		"//EAGLE/share/php-src/Zend/zend_compile.c",
+		"//EAGLE/share/php-src/Zend/zend_language_scanner.c",
+		"//EAGLE/share/php-src/Zend/zend_execute.c",
+		"//EAGLE/share/php-src/Zend/zend_signal.h",
+		"//EAGLE/share/php-src/Zend/zend_signal.c",
+		"//EAGLE/share/m/protocol_binary.h",
+		"//EAGLE/share/como-lang/comotype.h",
+		"//EAGLE/share/como-lang/comolongobject.c",
+		"//EAGLE/share/como-lang/comolongobject.h",
+		"//EAGLE/share/como-lang/lexer.l",
+		"//EAGLE/share/memcached/memcached.h",
+		"//EAGLE/share/memcached/memcached.c",
+		"//EAGLE/share/php-src/Zend/zend_llist.h",
+		"//EAGLE/share/php-src/Zend/zend_language_parser.lo",
+		"//EAGLE/share/php-src/Zend/zend_language_parser.h",
+		"//EAGLE/share/php-src/Zend/zend_language_parser.output",
+		"//EAGLE/share/php-src/Zend/zend_language_scanner.h",
+		"//EAGLE/share/php-src/Zend/zend_language_parser.c",
+		"//EAGLE/share/php-src/main/alloca.c",
+		"//EAGLE/share/php-src/main/alloca.lo",
+		"//EAGLE/share/php-src/php7.spec.in",
+		"//EAGLE/share/php-src/README.MAILINGLIST_RULES",
+		"//EAGLE/share/php-src/README.PARAMETER_PARSING_API",
+		"//EAGLE/share/php-src/README.SUBMITTING_PATCH"
+	],
+	"find":
+	{
+		"height": 34.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"UNARY_MINUS",
+			"POSTFIX",
+			"ruler",
+			"newNull",
+			"copyObject",
+			"mapSearch",
+			"UNARY_MINUS",
+			"AST_NODE_TYPE_STRING",
+			"zend_ast_create_binary_op",
+			"create_binary_op",
+			"variable",
+			"require",
+			"T_PRINT",
+			"APPEND_STAT",
+			"adf",
+			"df"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"folders":
+	[
+		{
+			"path": "\\\\EAGLE\\share\\como-lang"
+		}
+	],
+	"groups":
+	[
+		{
+			"selected": 4,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "parser.y",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 6579,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1841,
+								1841
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Bison/Bison.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 2988.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "lexer.l",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3392,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2571,
+								2571
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Lisp/Lisp.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 925.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 8,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "como.c",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 21585,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								12036,
+								12036
+							]
+						],
+						"settings":
+						{
+							"rulers":
+							[
+								78
+							],
+							"syntax": "Packages/C++/C.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 4949.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "globals.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1016,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1005,
+								1005
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 195.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "como_compiler.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1746,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1466,
+								1466
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 276.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "como_compiler.c",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2179,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								560,
+								543
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 880.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "como_execute.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 349,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "b",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 62,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								47,
+								47
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				}
+			]
+		},
+		{
+			"selected": 0,
+			"sheets":
+			[
+				{
+					"buffer": 8,
+					"file": "ast.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4745,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1919,
+								1919
+							]
+						],
+						"settings":
+						{
+							"rulers":
+							[
+								78
+							],
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 753.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"type": "text"
+				},
+				{
+					"buffer": 9,
+					"file": "ast.c",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 6283,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1086,
+								1086
+							]
+						],
+						"settings":
+						{
+							"rulers":
+							[
+								78
+							],
+							"syntax": "Packages/C++/C.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 275.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 9,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 23.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			],
+			[
+				0,
+				1,
+				1,
+				2
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			0.87559429477,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "",
+	"replace":
+	{
+		"height": 42.0
+	},
+	"save_all_on_build": false,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": true,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 197.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

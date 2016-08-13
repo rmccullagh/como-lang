@@ -1,3 +1,10 @@
+#ifndef COMO_DEBUG_H_INCLUDED
+#define COMO_DEBUG_H_INCLUDED
+
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
 #define ANSI_COLOR_YELLOW  "\x1b[33m"
@@ -21,7 +28,7 @@ static void como_debug_ex(const char *f,
 static void __attribute__ ((noreturn)) como_error_noreturn_ex(const char *f,
 		const char *fn, int ln, const char* format, ...)
 {
-	fprintf(stderr, ANSI_COLOR_RED  "%s:%s:%d: fatal: ", f, fn, ln);
+	fprintf(stderr, ANSI_COLOR_RED  "fatal: %s:%s:%d: ", f, fn, ln);
 	va_list args;
 	va_start (args, format);
 	vfprintf (stderr, format, args);
@@ -38,4 +45,10 @@ static void __attribute__ ((noreturn)) como_error_noreturn_ex(const char *f,
 #define como_error_noreturn(format, ...) como_error_noreturn_ex(__FILE__, __func__, __LINE__, format, ##__VA_ARGS__)
 
 #define como_debug(format, ...) como_debug_ex(__FILE__, __func__, __LINE__, format, ##__VA_ARGS__)
+
+#define COMO_OOM() do { \
+	como_error_noreturn("out of memory"); \
+} while(0)
+
+#endif
 

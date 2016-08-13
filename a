@@ -1,7 +1,9 @@
-a = 1;
-b = a;
-a + 1;
-
-print(a);
-print(b);
-
+/*
+ * This is a comment
+ * print(i);
+ */
+i = 5;
+while(i--) {
+    print(i);
+}
+print(i);

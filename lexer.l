@@ -47,7 +47,9 @@ static void update_loc(YYLTYPE *loc, char* text)
 
 %option reentrant noyywrap never-interactive nounistd yylineno
 %option bison-bridge
-%option bison-locations
+%option bison-locations nounput noinput
+
+%x COMMENT
 
 WHITE_SPACE	[ \r\n\t]*
 L		[a-zA-Z_]
@@ -56,9 +58,18 @@ D   [0-9]
 
 %%
 
+"//".*\n                            ;
+
+"/*"                                BEGIN(COMMENT);                                                                                                                                                   
+<COMMENT>"/*"                       printf("%s%d\n", "Warning: multiple comments opened at line: ", yylineno);                                                                                        
+<COMMENT>"*/"                       BEGIN(INITIAL);                                                                                                                                                   
+<COMMENT>"EOF"                      printf("Reached end of file while scanning comment\n");                                                                                                            
+<COMMENT>.|"\n"                     ;
+
 "if"		    { return T_IF;     }
 "else"          { return T_ELSE;   }
 "while"         { return T_WHILE;  }
+"for"			{ return T_FOR;    }
 "func"          { return T_FUNC;   }
 "print"         { return T_PRINT;  }
 "return"        { return T_RETURN; }
@@ -67,6 +78,7 @@ D   [0-9]
 "<="            { return T_LTE;    }
 ">="            { return T_GTE;    }
 "++"            { return T_INC;    }
+"--"            { return T_DEC;    }
 
 {WHITE_SPACE}	{ /* Skipping Blanks Today */ }
 {L}{A}*         {

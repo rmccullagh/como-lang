@@ -27,6 +27,8 @@
 #include "globals.h"
 #include "como_opcode.h"
 
+#define COMO_IS_FUNCTION (1 << 0)
+
 static void como_print_stack_trace(void);
 static void debug_code_to_output(FILE *);
 #define COMO_COMPILER 1 
@@ -35,13 +37,7 @@ static void debug_code_to_output(FILE *);
 #define CF_STACKSIZE 1024
 #define COMO_DEFAULT_OP_ARRAY_CAPACITY 512
 
-typedef struct como_frame {
-		size_t cf_sp;
-		Object *cf_fname;
-		Object *cf_stack[CF_STACKSIZE];
-		Object *cf_symtab;
-		Object *cf_retval;
-} como_frame;
+typedef struct como_frame como_frame;
 
 static int como_frame_init(como_frame *frame) {
 	frame->cf_sp = 0;
@@ -54,6 +50,7 @@ static int como_frame_init(como_frame *frame) {
 	return COMO_SUCCESS;
 }
 
+#define EMPTY() (cframe->cf_sp == 0)
 #define PUSH(e) do { \
 		if(cframe->cf_sp + 1 >= CF_STACKSIZE) { \
 					printf("error stack overflow tried to push onto #%zu\n", cframe->cf_sp + 1); \
@@ -76,12 +73,20 @@ static int como_frame_init(como_frame *frame) {
 	} \
 } while(0)
 
+struct como_frame {
+	size_t cf_sp;
+	Object *cf_fname;
+	Object *cf_stack[CF_STACKSIZE];
+	Object *cf_symtab;
+	Object *cf_retval;
+};
+
 typedef struct como_i {
 	unsigned char opcode;
 } como_i;
 
 typedef struct op_code {
-	struct como_i inst;
+	unsigned char opcode;
 	Object *op1;
 } op_code;
 
@@ -110,18 +115,10 @@ typedef struct compiler_context {
 	Object *function_table;
 } compiler_context;
 
-typedef struct como_function {
-	size_t fn_arg_count;
-	Object *arguments;
-	compiler_context *fn_ctx;
-	como_frame *fn_frame;
-} como_function;
-
 
 typedef struct ex_globals {
 	Object *filename;
 	como_stack* function_call_stack;
-	como_stack *frame_stack;
 } ex_globals;
 
 
@@ -151,10 +148,6 @@ static void call_stack_push(Object *fname, Object *lineno, Object *colno)
 	arrayPushEx(call_info, colno);
 
 	como_stack_push(&eg->function_call_stack, (void *)call_info);
-}
-
-static void frame_stack_push(compiler_context *f) {
-	como_stack_push(&eg->frame_stack, (void *)f);
 }
 
 static void executor_init(const char *filename, ex_globals *e) {
@@ -193,7 +186,7 @@ static void debug_code_to_output(FILE *fp) {
 		size_t i;
 		for(i = 0; i < cg->code.size; i++) {
 			op_code *c = cg->code.table[i];
-			switch(c->inst.opcode) {
+			switch(c->opcode) {
 				case IREM: {
 					fprintf(fp, "\tIREM\n");
 					break;
@@ -205,9 +198,7 @@ static void debug_code_to_output(FILE *fp) {
 					break;
 				}
 				case CALL_FUNCTION: {
-					char *value = objectToString(c->op1);
-					fprintf(fp, "\tCALL_FUNCTION %s\n", value);
-					free(value);
+					fprintf(fp, "\tCALL_FUNCTION\n");
 					break;
 				}
 				case DEFINE_FUNCTION: {
@@ -335,6 +326,13 @@ static void debug_code_to_output(FILE *fp) {
 static void como_vm(void);
 static void emit(unsigned char, Object *);
 
+#define ENSURE_POINTER_TYPE(o) do { \
+	if(O_TYPE((o)) != IS_POINTER) { \
+		como_error_noreturn("argument must be an internal IS_POINTER type, got (%d): %s", O_TYPE((o)), \
+			objectTypeStr((o))); \
+	} \
+} while(0)
+
 static void como_vm(void) {
 
 	if(getenv("DEBUG")) {
@@ -354,7 +352,7 @@ static void como_vm(void) {
 		op_code *c = cg->code.table[pc];
 		assert(c);
 		
-		switch(c->inst.opcode) {
+		switch(c->opcode) {
 			TARGET(POSTFIX_INC) {
 				Object *name = mapSearchEx(cframe->cf_symtab, O_SVAL(c->op1)->value);
 				if(name == NULL) {
@@ -555,113 +553,31 @@ static void como_vm(void) {
 				VM_CONTINUE		
 			}
 			TARGET(CALL_FUNCTION) {
-				Object *code = NULL;
-				como_stack* top = eg->frame_stack;
-				como_stack *prev = NULL;
-				compiler_context *tmpctx = NULL;
-				while(top != NULL) {
-					tmpctx = (compiler_context *)top->value;
-					code = mapSearchEx(tmpctx->function_table, O_SVAL(c->op1)->value);
-					if(code != NULL) {
-						break;
-					}
-					top = top->next;
-					prev = top;
-				}
-				
-				if(code == NULL) {
-					como_error_noreturn("call to undefined function '%s'", O_SVAL(c->op1)->value);
-				}
-
-				Object *total_args;
-				Object *colno;
+				Object *function;
+				Object *totalargs;
 				Object *lineno;
+				Object *colno;
 
-				POP(total_args);
+				POP(function);
+				POP(totalargs);
 				POP(colno);
 				POP(lineno);
 
-				como_function *fn;
-				ssize_t i;
+				ENSURE_POINTER_TYPE(function);
 
-				fn = (como_function *)O_PTVAL(code);
-				Array *arguments = O_AVAL(fn->arguments);
-
-				if(fn->fn_arg_count != (size_t)O_LVAL(total_args)) {
-					como_error_noreturn("function '%s' expects exactly %zu arguments, %ld given",
-						O_SVAL(c->op1)->value, fn->fn_arg_count, O_LVAL(total_args));
+				if(!(O_FLG(function) & COMO_IS_FUNCTION)) {
+					como_error_noreturn("value is not callable");
 				}
 
-				i = (ssize_t)fn->fn_arg_count;
-				while(i--) {
-					Object *arg_value;
-					POP(arg_value);
-					Object *arg_name = arguments->table[i];
-					/* It's important to copy the value of arg_value (mapInsert) here
-					   as, if we don't, then arguments will actually be passed by reference, not value
-					 */
-					mapInsert(fn->fn_frame->cf_symtab, O_SVAL(arg_name)->value, 
-						arg_value);
-				}
 
-				/* save context */
-				compiler_context *old_ctx = cg;
-				como_frame *_old_cframe = cframe;
+/*
+			emit(LOAD_CONST, newLong((long)p->u1.call_node.lineno));
+			emit(LOAD_CONST, newLong((long)p->u1.call_node.colno));
+			emit(LOAD_CONST, newLong(p->u1.call_node.arguments->u1.statements_node.count));
+			emit(LOAD_CONST, newString(p->u1.call_node.id->u1.id_node.name));
+			emit(CALL_FUNCTION, NULL);
+*/
 
-				como_debug("calling function '%s' with %ld arguments", O_SVAL(c->op1)->value,
-					O_LVAL(total_args));
-
-
-				cg = fn->fn_ctx;
-				cframe = fn->fn_frame;
-
-				if(cg->code.table[cg->code.size - 1]->inst.opcode != IRETURN) {
-					como_debug("automatically inserting IRETURN for function %s", O_SVAL(c->op1)->value);
-					emit(LOAD_CONST, newLong(0L));
-					emit(IRETURN, newLong(1L));
-				}
-
-				call_stack_push(c->op1, lineno, colno);
-				/*
-				 * push this frame onto the frame stack
-				 */
-				frame_stack_push(fn->fn_ctx);
-
-				//return;
-				(void)como_vm();
-
-				Object *retval = copyObject(cframe->cf_retval);
-
-				como_debug("stack pointer is at %zu", cframe->cf_sp);
-				
-				/* restore context */
-				cg = old_ctx;
-				cframe = _old_cframe;
-				
-				/* BEGIN RESET */
-				fn->fn_frame->cf_retval = NULL;
-				objectDestroy(fn->fn_frame->cf_symtab);
-				fn->fn_frame->cf_symtab = newMap(2);
-				fn->fn_frame->cf_sp = 0;
-				fn->fn_ctx->pc = 0;
-				size_t ii;
-				for(ii = 0; ii < CF_STACKSIZE; ii++) {
-					fn->fn_frame->cf_stack[ii] = NULL;
-				}
-				/* END RESET */
-
-				/*
-				 * TODO pop the frame_stack and kill all objects in it 
-				 */
-				 
-				if(prev) {
-					como_debug("popping frame stack");
-					prev->next = top->next;
-				} else {
-					eg->frame_stack = top->next;
-				}
-			
-				PUSH(retval);
 				VM_CONTINUE
 			}
 		}
@@ -782,9 +698,11 @@ static int como_compile(ast_node* p)
 		} 
 		break;
 		case AST_NODE_TYPE_FUNC_DECL: {	
+
+			/*
 			emit(DEFINE_FUNCTION, newString(p->u1.function_node.name));
 
-			/* save context */
+			
 			compiler_context *old_ctx = cg;
 			como_frame *_old_cframe = cframe;
 
@@ -819,10 +737,14 @@ static int como_compile(ast_node* p)
 			fn->fn_ctx = ctx_fn;
 			fn->fn_frame = _cframe_fn;
 
-			mapInsertEx(old_ctx->function_table, p->u1.function_node.name, newPointer((void *)fn));
-			/* restore context */
+			Object *function = newPointer((void *)fn);
+			O_FLG(function) |= COMO_IS_FUNCTION;
+
+			mapInsertEx(_old_cframe->cf_symtab, p->u1.function_node.name, function);
+		
 			cg = old_ctx;
 			cframe = _old_cframe;
+			*/
 
 		} 
 		break;
@@ -831,7 +753,9 @@ static int como_compile(ast_node* p)
 			emit(LOAD_CONST, newLong((long)p->u1.call_node.lineno));
 			emit(LOAD_CONST, newLong((long)p->u1.call_node.colno));
 			emit(LOAD_CONST, newLong(p->u1.call_node.arguments->u1.statements_node.count));
-			emit(CALL_FUNCTION, newString(p->u1.call_node.id->u1.id_node.name));
+			emit(LOAD_CONST, newString(p->u1.call_node.id->u1.id_node.name));
+			emit(CALL_FUNCTION, NULL);
+			//emit(CALL_FUNCTION, newString(p->u1.call_node.id->u1.id_node.name));
 			break;
 		} 
 		case AST_NODE_TYPE_UNARY_OP: {
@@ -943,13 +867,9 @@ void ast_compile(const char *filename, ast_node* program)
 		como_error_noreturn("failed to aquire execution frame");
 	}
 
-	frame_stack_push(&ctx);
-
 
 	ast_node_free(program);
 
 	como_vm();
-
-		OBJECT_DUMP_EX(cframe->cf_symtab);
 
 }

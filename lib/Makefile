@@ -1,0 +1,1 @@
+CFLAGS=-g -stc=c99 -Wall -Wextra -pedantic -DDEBUG

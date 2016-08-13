@@ -1,5 +1,9 @@
-age = 25;
-target = 1;
+func init() {
+  return init();
+}
 
-name = age < target;
-print(name);
+func main() {
+  return init();
+}
+
+print(main());

@@ -4,53 +4,54 @@
 #include <stddef.h>
 #include <object.h>
 
-#define COMO_DEFAULT_FRAME_STACKSIZE   1024U
+#include "stack.h"
+
+#define COMO_DEFAULT_FRAME_STACKSIZE   2048U
 #define COMO_DEFAULT_OP_ARRAY_CAPACITY 512U
 
 #define COMO_NODE_OP_IS_LONG       0x01
 #define COMO_NODE_OP_IS_DOUBLE     0x02
 #define COMO_NODE_OP_IS_JMP_OFFSET 0x03
 #define COMO_NODE_OP_IS_STRING     0x04
+#define COMO_SUCCESS 0
+#define COMO_FAILURE 1
 
-typedef struct compiler_context compiler_context;
+typedef struct como_frame como_frame;
 
-typedef union como_node_op_operand {
-	long   lconstant;
-	double dconstant; 
-	size_t jmp_offset;
-	struct {
-		size_t len;
-		char *value;
-	} sconstant;
-} como_node_op_operand;
+struct como_frame {
+	size_t     cf_sp;                      /* stack pointer into cf_stack */
+	size_t     cf_stack_size;              /* stack size, num of used entries */
+	Object     *cf_fname;                  /* currently executing function name */
+	Object     *cf_stack[(size_t)COMO_DEFAULT_FRAME_STACKSIZE];  /* stack */
+	como_stack *cf_scope;               /* nested scopes for variables */
+	Object     *cf_symtab;               /* Map, symbol table */
+	Object     *cf_current_symtab;
+	Object     *cf_retval;               /* return value */
+};
 
-typedef struct como_node_op {
-	unsigned char        inst;
-	unsigned char 		 op1type;
-	como_node_op_operand op1;
-} como_node_op;
+typedef struct como_op_code {
+	unsigned char op_code;
+	Object       *operand;
+} como_op_code;
 
-typedef struct op_array {
-	size_t         size;
-	size_t         capacity;
-	como_node_op   **table;
-} op_array;
+typedef struct como_op_array {
+	como_stack      *call_stack;
+	como_frame      *frame;
+	size_t           size;     /* size of the table */
+	size_t           capacity; /* capacity of the table */
+	size_t           pc;
+	como_op_code   **table;    /* the array of instructions */
+} como_op_array;
 
-typedef struct como_frame {
-	size_t  cf_sp;
-	Object  *cf_stack[COMO_DEFAULT_FRAME_STACKSIZE];
-	Object  *cf_symtab;
-	Object  *cf_retval;
-	op_array cf_code;
-} como_frame;
+typedef struct como_function {
+	Object        *name;
+	Object        *arguments;
+	como_op_array *op_array;
+} como_function;
 
-extern
-como_frame *como_frame_new(void);
-
-extern como_node_op *
-como_make_node(unsigned char inst, unsigned char operand_type);
-
-extern
-void emit(unsigned char op, Object *arg);
+como_frame      *como_frame_create(void); 
+void             como_frame_free(como_frame *);
+como_op_array   *como_op_array_create(void);
+void             como_emit(como_op_array*, unsigned char, Object *);
 
 #endif /* !COMO_COMPILER_H */

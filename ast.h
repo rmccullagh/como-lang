@@ -27,15 +27,19 @@
  */
 typedef enum {
 	AST_NODE_TYPE_NUMBER, AST_NODE_TYPE_STRING,
-	AST_NODE_TYPE_ID,
+	AST_NODE_TYPE_ID, AST_NODE_TYPE_FOR,
 	AST_NODE_TYPE_STATEMENT_LIST, AST_NODE_TYPE_BIN_OP,
 	AST_NODE_TYPE_IF, AST_NODE_TYPE_WHILE, AST_NODE_TYPE_FUNC_DECL, 
 	AST_NODE_TYPE_CALL, AST_NODE_TYPE_RET, AST_NODE_TYPE_PRINT,
-	AST_NODE_TYPE_UNARY_OP,
+	AST_NODE_TYPE_UNARY_OP, AST_NODE_TYPE_POSTFIX,
 } ast_node_type;
 
 typedef enum {
-	AST_UNARY_OP_POSTFIX_INC, AST_UNARY_OP_MINUS,
+	AST_POSTFIX_OP_INC, AST_POSTFIX_OP_DEC,
+} ast_postfix_op_type;
+
+typedef enum {
+	AST_UNARY_OP_MINUS,
 } ast_unary_op_type;
 
 typedef enum {
@@ -73,6 +77,11 @@ typedef struct {
 } ast_node_unary;
 
 typedef struct {
+	ast_postfix_op_type type;
+	ast_node *expr;
+} ast_node_postfix;
+
+typedef struct {
 	ast_node* condition;
 	ast_node* b1;
 	ast_node* b2;
@@ -82,6 +91,13 @@ typedef struct {
 	ast_node* condition;
 	ast_node* body;
 } ast_node_while;
+
+typedef struct {
+	ast_node *initialization;
+	ast_node *condition;
+	ast_node *final_expression;
+	ast_node *body;
+} ast_node_for;
 
 /* function a() {} */
 typedef struct {
@@ -120,35 +136,46 @@ struct ast_node {
 		ast_node_unary        unary_node;
 		ast_node_if		      if_node;
 		ast_node_while		  while_node;
-		ast_node_function   function_node;
-		ast_node_call       call_node;
+		ast_node_for          for_node;
+		ast_node_function     function_node;
+		ast_node_call         call_node;
 		ast_node_return		  return_node;
 		ast_node_print		  print_node;
+		ast_node_postfix      postfix_node;
 	} u1;
 };
 
-extern ast_node *ast_node_create_unary_op(ast_unary_op_type, ast_node *);
-extern ast_node* ast_node_create_number(long value);
-extern ast_node* ast_node_create_statement_list(size_t count, ...);
-extern void ast_node_statement_list_push(ast_node* node, ast_node* value);
-extern ast_node* ast_node_create_binary_op(ast_binary_op_type type, 
-		ast_node* left, ast_node* right);
+#define AST_NODE_AS_ID(p) (p)->u1.id_node.name
 
-extern ast_node* ast_node_create_id(const char* name);
-extern ast_node* ast_node_create_if(ast_node* condition, ast_node* b1, ast_node* b2);
-extern ast_node* ast_node_create_while(ast_node* condition, ast_node* body);
-extern ast_node* ast_node_create_function(const char* name, 
-		ast_node* parameters, ast_node* body);
-extern ast_node* ast_node_create_call(ast_node* id, ast_node* arguments, int lineno, int col);
-extern ast_node* ast_node_create_return(ast_node* expr);
-extern ast_node* ast_node_create_print(ast_node* expr);
-extern ast_node* ast_node_create_string_literal(const char* str);
+extern ast_node *ast_node_create_postfix_op(ast_postfix_op_type type,
+		ast_node *expression);
+extern ast_node *ast_node_create_unary_op(ast_unary_op_type, ast_node *);
+extern ast_node *ast_node_create_number(long value);
+extern ast_node *ast_node_create_statement_list(size_t count, ...);
+extern void ast_node_statement_list_push(ast_node *node, ast_node *value);
+extern ast_node *ast_node_create_binary_op(ast_binary_op_type type, 
+		ast_node *left, ast_node *right);
+
+extern ast_node *ast_node_create_id(const char *name);
+extern ast_node *ast_node_create_if(ast_node *condition, ast_node* b1, 
+		ast_node *b2);
+extern ast_node *ast_node_create_while(ast_node *condition, ast_node *body);
+extern ast_node *ast_node_create_for(ast_node *initialization, 
+		ast_node *condition, ast_node *final_expression, ast_node *body);
+
+extern ast_node *ast_node_create_function(const char *name, 
+		ast_node *parameters, ast_node *body);
+extern ast_node *ast_node_create_call(ast_node *id, ast_node *arguments, 
+		int lineno, int col);
+extern ast_node *ast_node_create_return(ast_node *expr);
+extern ast_node *ast_node_create_print(ast_node *expr);
+extern ast_node *ast_node_create_string_literal(const char *str);
 
 /*
  * These functions are defined in other files outside ast.c
  */
 extern void ast_node_free(ast_node* node);
-extern void ast_node_dump_tree(ast_node* node);
-extern void ast_compile(const char *filename, ast_node* program);
+extern void ast_node_dump_tree(ast_node *node);
+extern void ast_compile(const char *filename, ast_node *program);
 
 #endif

@@ -1,6 +1,9 @@
+<?php
 
-function a() {
-	me();
-}
-
+(function() {
+  function a() {
+	  me();
+  }
+  a();
+})();
 

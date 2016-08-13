@@ -64,14 +64,16 @@ typedef void* yyscan_t;
     T_IF = 262,
     T_ELSE = 263,
     T_WHILE = 264,
-    T_FUNC = 265,
-    T_RETURN = 266,
-    T_PRINT = 267,
-    T_NOELSE = 268,
-    T_INC = 269,
-    T_NUM = 270,
-    T_ID = 271,
-    T_STR_LIT = 272
+    T_FOR = 265,
+    T_FUNC = 266,
+    T_RETURN = 267,
+    T_PRINT = 268,
+    T_NOELSE = 269,
+    T_INC = 270,
+    T_DEC = 271,
+    T_NUM = 272,
+    T_ID = 273,
+    T_STR_LIT = 274
   };
 #endif
 
@@ -87,7 +89,7 @@ union YYSTYPE
 	char* stringliteral;
 	ast_node* ast;
 
-#line 91 "parser.h" /* yacc.c:1909  */
+#line 93 "parser.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

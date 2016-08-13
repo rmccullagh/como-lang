@@ -14,9 +14,20 @@ void ast_node_free(ast_node* p)
 			ast_node_free(p->u1.unary_node.expr);
 			free(p);
 		break;
+		case AST_NODE_TYPE_POSTFIX:
+			ast_node_free(p->u1.postfix_node.expr);
+			free(p);
+		break;
 		case AST_NODE_TYPE_WHILE:
 			ast_node_free(p->u1.while_node.condition);
 			ast_node_free(p->u1.while_node.body);
+			free(p);
+		break;
+		case AST_NODE_TYPE_FOR:
+			ast_node_free(p->u1.for_node.initialization);
+			ast_node_free(p->u1.for_node.condition);
+			ast_node_free(p->u1.for_node.final_expression);			
+			ast_node_free(p->u1.for_node.body);	
 			free(p);
 		break;
 		case AST_NODE_TYPE_STRING:

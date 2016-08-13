@@ -27,9 +27,7 @@
 #define POSTFIX_INC              0x17
 #define UNARY_MINUS              0x18
 #define IREM					 0x19
+#define POSTFIX_DEC              0x20
 
-const char * const opcode_strval[] = {
-	[INONE] = "INONE"
-};
 
 #endif /* !COMO_OPCODE_H */

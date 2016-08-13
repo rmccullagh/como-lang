@@ -1,0 +1,49 @@
+             ^
+cc -g -Wall -Wextra -c ast_node_dump_tree.c
+cc -g -Wall -Wextra -c stack.c
+bison --warnings=all parser.y
+flex lexer.l
+cc -g -Wall -Wextra -c lexer.c
+lexer.c: In function ‘yy_fatal_error’:
+lexer.c:1823:58: warning: unused parameter ‘yyscanner’ [-Wunused-parameter]
+ static void yy_fatal_error (yyconst char* msg , yyscan_t yyscanner)
+                                                          ^
+lexer.c: In function ‘yyalloc’:
+lexer.c:2167:43: warning: unused parameter ‘yyscanner’ [-Wunused-parameter]
+ void *yyalloc (yy_size_t  size , yyscan_t yyscanner)
+                                           ^
+lexer.c: In function ‘yyrealloc’:
+lexer.c:2172:58: warning: unused parameter ‘yyscanner’ [-Wunused-parameter]
+ void *yyrealloc  (void * ptr, yy_size_t  size , yyscan_t yyscanner)
+                                                          ^
+lexer.c: In function ‘yyfree’:
+lexer.c:2184:36: warning: unused parameter ‘yyscanner’ [-Wunused-parameter]
+ void yyfree (void * ptr , yyscan_t yyscanner)
+                                    ^
+In file included from globals.h:23:0,
+                 from lexer.l:22:
+lexer.l: At top level:
+comodebug.h:16:13: warning: ‘como_debug_ex’ defined but not used [-Wunused-function]
+ static void como_debug_ex(const char *f,
+             ^
+cc -g -Wall -Wextra -c parser.c
+parser.y: In function ‘yyerror’:
+parser.y:26:41: warning: unused parameter ‘ast’ [-Wunused-parameter]
+ int yyerror(YYLTYPE * lvalp, ast_node** ast, yyscan_t scanner, const char* msg)
+                                         ^
+parser.y:26:55: warning: unused parameter ‘scanner’ [-Wunused-parameter]
+ int yyerror(YYLTYPE * lvalp, ast_node** ast, yyscan_t scanner, const char* msg)
+                                                       ^
+In file included from globals.h:23:0,
+                 from parser.y:19:
+parser.y: At top level:
+comodebug.h:16:13: warning: ‘como_debug_ex’ defined but not used [-Wunused-function]
+ static void como_debug_ex(const char *f,
+             ^
+cc -g -Wall -Wextra -c como_compiler_ex.c
+cc -g -Wall -Wextra -lobject -leasyio -c como.c
+In file included from como.c:27:0:
+comodebug.h:16:13: warning: ‘como_debug_ex’ defined but not used [-Wunused-function]
+ static void como_debug_ex(const char *f,
+             ^
+cc ast.o ast_node_free.o ast_node_dump_tree.o stack.o parser.o lexer.o como_compiler_ex.o como.o -o como -g -Wall -Wextra -lobject -leasyio

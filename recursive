@@ -1,0 +1,10 @@
+func factorial(number) {
+	if(number <= 1) {
+		return 1;
+	}
+	temp = number * factorial(number - 1);
+    return temp;
+}
+
+result = factorial(7);
+print(result);

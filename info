@@ -1,0 +1,19 @@
+/*
+func add(a, b) {
+    return a + b;
+}
+
+value = add(5, 10);
+
+add:
+    LOAD_NAME a
+    LOAD_NAME b
+    ADD
+    RETURN
+
+LOAD_CONST 5
+LOAD_CONST 10
+LOAD_NAME add
+CALL
+STORE_NAME
+*/

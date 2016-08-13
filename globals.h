@@ -20,19 +20,12 @@
 
 #include <stddef.h>
 
+#include "comodebug.h"
+#include "como_opcode.h"
+
 #define COMO_FAILURE 1
 #define COMO_SUCCESS 0
 
-//#define COMO_DEBUG 1
-
-typedef struct como_global {
-	char* filename;
-	size_t filename_length;
-} como_global;
-
-extern const char* get_file_name();
-
-extern void dump_fn_call_stack();
-
+extern char *get_active_file_name(void);
 
 #endif

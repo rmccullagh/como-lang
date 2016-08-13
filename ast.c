@@ -22,6 +22,15 @@
 #include "ast.h"
 #include "globals.h"
 
+ast_node *ast_node_create_postfix_op(ast_postfix_op_type type,
+		ast_node *expression) {
+	ast_node* retval = malloc(sizeof(ast_node));
+	retval->type = AST_NODE_TYPE_POSTFIX;
+	retval->u1.postfix_node.type = type;
+	retval->u1.postfix_node.expr = expression;
+	return retval;
+}
+
 ast_node *ast_node_create_unary_op(ast_unary_op_type type, ast_node *expr)
 {
 	ast_node* retval = malloc(sizeof(ast_node));
@@ -127,6 +136,17 @@ ast_node* ast_node_create_while(ast_node* condition, ast_node* body)
 	retval->u1.while_node.condition = condition;
 	retval->u1.while_node.body = body;
 	return retval;
+}
+
+extern ast_node *ast_node_create_for(ast_node *initialization, 
+		ast_node *condition, ast_node *final_expression, ast_node *body) {
+	ast_node* retval = malloc(sizeof(ast_node));
+	retval->type = AST_NODE_TYPE_FOR;
+	retval->u1.for_node.initialization = initialization;
+	retval->u1.for_node.condition = condition;
+	retval->u1.for_node.final_expression = final_expression;
+	retval->u1.for_node.body = body;
+	return retval;	
 }
 
 ast_node* ast_node_create_function(const char* name, ast_node* parameters, ast_node* body)

@@ -1,20 +1,20 @@
 CFLAGS = -g -Wall -Wextra
 LIBS = -lobject -leasyio
 
-como: ast.o ast_node_free.o ast_node_dump_tree.o stack.o ast_compile.o lexer.o parser.o como.o
-	$(CC) ast.o ast_node_free.o ast_node_dump_tree.o stack.o ast_compile.o parser.o lexer.o como.o -o como $(CFLAGS) $(LIBS)
+como: ast.o ast_node_free.o ast_node_dump_tree.o stack.o lexer.o parser.o como_compiler_ex.o como.o
+	$(CC) ast.o ast_node_free.o ast_node_dump_tree.o stack.o parser.o lexer.o como_compiler_ex.o como.o -o como $(CFLAGS) $(LIBS)
 
 ast.o: ast.c
 	$(CC) $(CFLAGS) -c ast.c
+
+como_compiler_ex.o: como_compiler_ex.c
+	$(CC) $(CFLAGS) -c como_compiler_ex.c
 
 ast_node_free.o: ast_node_free.c
 	$(CC) $(CFLAGS) -c ast_node_free.c
 
 ast_node_dump_tree.o: ast_node_dump_tree.c
 	$(CC) $(CFLAGS) -c ast_node_dump_tree.c
-
-ast_compile.o: ast_compile.c
-	$(CC) $(CFLAGS) -c ast_compile.c
 
 stack.o: stack.c
 	$(CC) $(CFLAGS) -c stack.c

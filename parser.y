@@ -26,7 +26,7 @@
 int yyerror(YYLTYPE * lvalp, ast_node** ast, yyscan_t scanner, const char* msg)
 {
 	printf("parse error: %s in file \"%s\" on line %d:%d\n", msg, 
-		get_file_name(), lvalp->first_line, lvalp->first_column);
+		get_active_file_name(), lvalp->first_line, lvalp->first_column);
 	
 	exit(1);
 }
@@ -84,6 +84,7 @@ typedef void* yyscan_t;
 %token T_LTE
 %token T_ELSE
 %token T_WHILE
+%token T_FOR
 %token T_FUNC
 %token T_RETURN
 %token T_CMP
@@ -92,6 +93,7 @@ typedef void* yyscan_t;
 %token T_NEQ
 %token T_GTE
 %token T_INC
+%token T_DEC
 
 %token <number> T_NUM
 %token <id> T_ID
@@ -190,6 +192,10 @@ selection_statement:
  T_WHILE '(' expr ')' compound_statement {
  	$$ = ast_node_create_while($3, $5);
  }
+ |
+ T_FOR '(' assignment_statement ';' expr ';' expr ')' compound_statement {
+ 	$$ = ast_node_create_for($3, $5, $7, $9);
+ }
 ;
 
 function_decl_statement:
@@ -270,7 +276,12 @@ expr:
  }
  |
  T_ID T_INC {
- 	$$ =ast_node_create_unary_op(AST_UNARY_OP_POSTFIX_INC, ast_node_create_id($1));
+ 	$$ =ast_node_create_postfix_op(AST_POSTFIX_OP_INC, ast_node_create_id($1));
+  	free($1);
+ }
+ |
+ T_ID T_DEC {
+ 	$$ =ast_node_create_postfix_op(AST_POSTFIX_OP_DEC, ast_node_create_id($1));
   	free($1);
  }
  |
