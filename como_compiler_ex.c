@@ -393,6 +393,42 @@ static void como_execute(ComoFrame *frame, ComoFrame *callingframe) {
                 }
                 break;        
             }
+						case IS_LESS_THAN: {
+							Object *right = pop(frame);
+							Object *left = pop(frame);
+							assert(right);
+							assert(left);
+
+							if(objectValueIsLessThan(left, right)) {
+								push(frame, newLong(1L));
+							} else {
+								push(frame, newLong(0L));
+							}
+							break;
+						}
+						case IADD: {
+							Object *right = pop(frame);
+							Object *left = pop(frame);
+							assert(right);
+							assert(left);
+
+							if(O_TYPE(left) == IS_LONG && O_TYPE(right) == IS_LONG) {
+								long value = O_LVAL(left) + O_LVAL(right);
+								push(frame, newLong(value));
+							} else {
+								char *left_str = objectToString(left);
+								char *right_str = objectToString(right);
+								Object *s1 = newString(left_str);
+								Object *s2 = newString(right_str);
+								Object *value = stringCat(s1, s2);
+								push(frame, value);
+								objectDestroy(s1);
+								objectDestroy(s2);
+								free(left_str);
+								free(right_str);	
+							}
+							break;
+						}
             case IMINUS: {
                 Object *right = pop(frame);
                 Object *left = pop(frame);
