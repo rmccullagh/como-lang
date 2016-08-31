@@ -436,6 +436,17 @@ static void como_execute(ComoFrame *frame, ComoFrame *callingframe) {
             case HALT: {
                 break;
             }
+						case IS_NOT_EQUAL: {
+							Object *right = pop(frame);
+							Object *left = pop(frame);
+
+							if(!objectValueCompare(left, right)) {
+								push(frame, newLong(1L));
+							} else {
+								push(frame, newLong(0L));
+							}
+							break;
+						}
             case LOAD_CONST: {
                 push(frame, opcode->operand);
                 break;
