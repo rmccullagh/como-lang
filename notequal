@@ -1,0 +1,2 @@
+print("Ryan" != "McCullagh");
+print("Ryan" != "Ryan");
