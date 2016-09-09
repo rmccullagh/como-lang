@@ -1,9 +1,9 @@
 func factorial(number) {
 	if(number <= 1) {
 		return 1;
-	}
-	temp = number * factorial(number - 1);
-    return temp;
+	}	
+
+	return number * factorial(number - 1);  
 }
 
 result = factorial(7);

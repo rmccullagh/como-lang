@@ -1,9 +1,1 @@
-/*
- * This is a comment
- * print(i);
- */
-i = 5;
-while(i--) {
-    print(i);
-}
-print(i);
+print(5 * 5 - 15);

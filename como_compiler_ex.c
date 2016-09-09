@@ -230,7 +230,7 @@ static void como_compile(ast_node* p, ComoFrame *frame)
             ComoOpCode *opcode = (ComoOpCode *)(O_PTVAL(temp2));
 
             if(opcode->op_code != IRETURN) {
-                como_debug("automatically inserting IRETURN for function %s", name);
+                //como_debug("automatically inserting IRETURN for function %s", name);
                 arrayPushEx(func_decl_frame->code, newPointer(
                     (void *)create_op(LOAD_CONST, newLong(0L)))); 
                 arrayPushEx(func_decl_frame->code, newPointer(
@@ -528,7 +528,7 @@ load_name_leave:
                         (long)(O_AVAL(fnframe->namedparameters)->size), 
                         O_LVAL(argcount));
                 }
-                como_debug("calling '%s'", O_SVAL(opcode->operand)->value);
+								como_debug("calling '%s'", O_SVAL(opcode->operand)->value);
                 mapInsertEx(fnframe->cf_symtab, "__FUNCTION__", 
                     newString(O_SVAL(opcode->operand)->value));
 
@@ -541,9 +541,10 @@ load_name_leave:
                     mapInsert(fnframe->cf_symtab, O_SVAL(argname)->value,
                         argvalue);
                     char *argvaluestr = objectToString(argvalue);
-                    como_debug("%ldth argument: '%s' has value: %s", i, O_SVAL(argname)->value,
+                    
+										como_debug("%ldth argument: '%s' has value: %s", i, O_SVAL(argname)->value,
                         argvaluestr);
-                    free(argvaluestr);
+										free(argvaluestr);
                 }
                 ComoFrame *prev = frame;
 
@@ -551,9 +552,8 @@ load_name_leave:
 
                 como_execute(fnframe, prev);
                 push(frame, pop(fnframe));
-                como_debug("function stack size: %zu", fnframe->cf_stack_size);
+								como_debug("function stack size: %zu", fnframe->cf_stack_size);
                 como_debug("function stack pointer: %zu", fnframe->cf_sp);
-
                 fnframe->next = NULL;
 
                 break;
@@ -569,7 +569,9 @@ load_name_leave:
                 break;
             }
             case IRETURN: {
-                if(! (O_LVAL(opcode->operand))) {
+                /* If there wasn't a value in the return statement */
+								/* return; */
+								if(! (O_LVAL(opcode->operand))) {
                     push(frame, newLong(0L));
                 }
                 return;
@@ -602,7 +604,8 @@ static void como_compile_ast(ast_node *p, const char *filename) {
 }
 
 char *get_active_file_name(void) {
-    return O_SVAL(global_frame->filename)->value;
+    return "-";
+		return O_SVAL(global_frame->filename)->value;
 }
 
 int como_ast_create(const char *filename)

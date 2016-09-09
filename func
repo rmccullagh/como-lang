@@ -21,7 +21,6 @@ func init() {
     iprint(num);
     num++;
   }
-  print(age);
 }
 
 init();
