@@ -1,0 +1,8 @@
+a = 0;
+while(a <= 5) {
+	a++;
+	name = __FUNCTION__;
+}		
+
+/* Since there is no block scope, name is defined in the global scope */
+print(name);
