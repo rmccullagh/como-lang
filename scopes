@@ -18,6 +18,10 @@ func b() {
 			 but it isn't that easy to do, beacuse we would need to have
 			 a stack of scopes to search first, where the search would be
 			 a last in first out search, (a linked list would be perfect) 
+		
+			 A simple fix would be to just not allow nested functions (like in c),
+			 but it would still be nice to implement block scope
+			 like for the body's of a for,while loops
 		*/
 		return a;
 	}
