@@ -13,7 +13,12 @@ func b() {
 	a = 4;
 	func this() {
 		/* Since the function "this" does not inherit any other scope
-			 except the global one, a will be 1 in this case, not 4 */
+			 except the global one, a will be 1 in this case, not 4
+		   it would be nice if we can inherit the outer scope easily,
+			 but it isn't that easy to do, beacuse we would need to have
+			 a stack of scopes to search first, where the search would be
+			 a last in first out search, (a linked list would be perfect) 
+		*/
 		return a;
 	}
 	c = this;
