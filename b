@@ -2,4 +2,6 @@ func loop(lower, upper) {
     print("in loop");
 }
 
-loop(0, 5);
+a = loop;
+
+a(0, 5);

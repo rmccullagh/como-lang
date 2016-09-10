@@ -1,5 +1,24 @@
-func b() {
-	return;
+func this() {
+	return 0;
 }
 
-b();
+a = 1;
+
+func b() {
+	/* This DOES NOT inherit any out scopes - TODO */
+	/* right now LOAD_NAME, either searches the current frame
+		 or it searches the global frame - 
+	   the global frame is where names are defined outside of a function
+	*/
+	a = 4;
+	func this() {
+		/* Since the function "this" does not inherit any other scope
+			 except the global one, a will be 1 in this case, not 4 */
+		return a;
+	}
+	c = this;
+	return c();
+}
+
+/* This should be 2 */
+print(b());

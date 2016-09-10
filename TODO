@@ -1,0 +1,3 @@
+FUNCTION CALLING
+	Right now functions are defined in a symbol table, but since there is
+	only single scoped symbol tables for each function, 
