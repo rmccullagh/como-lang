@@ -94,6 +94,7 @@ typedef void* yyscan_t;
 %token T_GTE
 %token T_INC
 %token T_DEC
+%token T_FUNCTION
 
 %token <number> T_NUM
 %token <id> T_ID
@@ -132,6 +133,10 @@ inner_statement_list:
 
 inner_statement:
  statement { $$ = $1; }
+;
+
+function_keyword:
+ T_FUNC | T_FUNCTION
 ;
 
 statement:
@@ -199,7 +204,7 @@ selection_statement:
 ;
 
 function_decl_statement:
- T_FUNC T_ID '('optional_parameter_list')' compound_statement {
+ function_keyword T_ID '('optional_parameter_list')' compound_statement {
 	$$ = ast_node_create_function($2, $4, $6);
 	free($2);
  }

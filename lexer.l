@@ -70,7 +70,8 @@ D   [0-9]
 "else"          { return T_ELSE;   }
 "while"         { return T_WHILE;  }
 "for"			{ return T_FOR;    }
-"func"          { return T_FUNC;   }
+"func"          { return T_FUNC;     }
+"function"      { return T_FUNCTION; }
 "print"         { return T_PRINT;  }
 "return"        { return T_RETURN; }
 "=="            { return T_CMP;    }
