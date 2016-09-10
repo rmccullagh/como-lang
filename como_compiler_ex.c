@@ -222,6 +222,11 @@ static void como_compile(ast_node* p, ComoFrame *frame)
                 );
             }
 
+            arrayPushEx(func_decl_frame->code, newPointer((void *)create_op(LOAD_CONST, 
+                newString(name)))); 
+            arrayPushEx(func_decl_frame->code, newPointer((void *)create_op(STORE_NAME, 
+										newString("__FUNCTION__"))));
+
             como_compile(p->u1.function_node.body, func_decl_frame);
 
             Array *temp = O_AVAL(func_decl_frame->code);
@@ -531,8 +536,15 @@ load_name_leave:
                         O_LVAL(argcount));
                 }
 								//como_debug("calling '%s'", O_SVAL(opcode->operand)->value);
-                mapInsertEx(fnframe->cf_symtab, "__FUNCTION__", 
-                    newString(O_SVAL(opcode->operand)->value));
+                // DOING THIS ACTUALLY DEFINES THE NAME AT RUNTIME
+								// which could not be equal to that actual function body 
+								// declared
+								// name = my_function
+								// name() 
+								// that call will have "my_function" for value __FUNCTION__
+								// must define it at COMPILE time
+								// mapInsertEx(fnframe->cf_symtab, "__FUNCTION__", 
+                // newString(O_SVAL(opcode->operand)->value));
 
                 while(i--) {
                     como_debug("getting %ldth argument for function call '%s'",
