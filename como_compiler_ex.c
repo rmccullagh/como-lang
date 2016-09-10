@@ -85,7 +85,7 @@ static void como_compile(ast_node* p, ComoFrame *frame)
         break;
         case AST_NODE_TYPE_NUMBER:
             arrayPushEx(frame->code, newPointer((void *)create_op(LOAD_CONST, 
-                newLong(p->u1.number_value))));
+                newLong((long)p->u1.number_value))));
         break;
         case AST_NODE_TYPE_ID:
             arrayPushEx(frame->code, newPointer((void *)create_op(LOAD_NAME, 
@@ -484,23 +484,25 @@ static void como_execute(ComoFrame *frame, ComoFrame *callingframe) {
 							break;
 						}
             case LOAD_CONST: {
+								como_debug("LOAD_CONST");
                 push(frame, opcode->operand);
                 break;
             }
             case STORE_NAME: {
                 Object *value = pop(frame);
-                mapInsert(frame->cf_symtab, 
+                mapInsertEx(frame->cf_symtab, 
                     O_SVAL(opcode->operand)->value, value);
                 break;
             }
+						/* This is where recursion was broken, don't do *ex */
             case LOAD_NAME: {
                 Object *value = NULL;
-                value = mapSearchEx(frame->cf_symtab, 
+                value = mapSearch(frame->cf_symtab, 
                     O_SVAL(opcode->operand)->value);
                 if(value) {
                     goto load_name_leave;
                 } else {
-                    value = mapSearchEx(global_frame->cf_symtab, 
+                    value = mapSearch(global_frame->cf_symtab, 
                         O_SVAL(opcode->operand)->value);
                 }
 
@@ -566,9 +568,15 @@ load_name_leave:
             case ITIMES: {
                 Object *right = pop(frame);
                 Object *left = pop(frame);
-                if(O_TYPE(right) != IS_LONG && O_TYPE(left) != IS_LONG) {
+                assert(right);
+								assert(left);
+
+								if(O_TYPE(right) != IS_LONG && O_TYPE(left) != IS_LONG) {
                     como_error_noreturn("invalid operands for ITIMES");
                 }
+								como_debug("ITIMES: %d, %d", O_TYPE(left),
+											O_TYPE(right));
+
                 long value = O_LVAL(left) * O_LVAL(right);
                 push(frame, newLong(value));
                 break;
