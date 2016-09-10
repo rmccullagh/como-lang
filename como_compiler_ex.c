@@ -528,7 +528,7 @@ load_name_leave:
                         (long)(O_AVAL(fnframe->namedparameters)->size), 
                         O_LVAL(argcount));
                 }
-								como_debug("calling '%s'", O_SVAL(opcode->operand)->value);
+								//como_debug("calling '%s'", O_SVAL(opcode->operand)->value);
                 mapInsertEx(fnframe->cf_symtab, "__FUNCTION__", 
                     newString(O_SVAL(opcode->operand)->value));
 
@@ -546,15 +546,14 @@ load_name_leave:
                         argvaluestr);
 										free(argvaluestr);
                 }
-                ComoFrame *prev = frame;
+                //ComoFrame *prev = frame;
 
-                fnframe->next = prev;
+                //fnframe->next = prev;
 
-                como_execute(fnframe, prev);
-                push(frame, pop(fnframe));
-								como_debug("function stack size: %zu", fnframe->cf_stack_size);
-                como_debug("function stack pointer: %zu", fnframe->cf_sp);
-                fnframe->next = NULL;
+                como_execute(fnframe, NULL);
+                
+								push(frame, pop(fnframe));
+								//fnframe->next = NULL;
 
                 break;
             }
@@ -575,8 +574,12 @@ load_name_leave:
                 break;
             }
             case IRETURN: {
-                /* If there wasn't a value in the return statement */
-								/* return; */
+                /* If there wasn't a return statement found in func body*
+								 * The compiler will insert a 1 as the operand if 
+								 * the AST had an expression for the return statement,
+								 * otherwise, it will be 0
+								 * The actual value to be returned is popped from the stack
+								 */
 								if(! (O_LVAL(opcode->operand))) {
                     push(frame, newLong(0L));
                 }

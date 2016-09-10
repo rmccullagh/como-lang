@@ -3,8 +3,8 @@ func factorial(number) {
 		return 1;
 	}	
 
-	return number * factorial(number - 1);  
+	temp = number * factorial(number - 1);  
+	return temp;
 }
 
-result = factorial(7);
-print(result);
+print(factorial(7));
