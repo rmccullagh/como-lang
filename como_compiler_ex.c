@@ -541,7 +541,8 @@ load_name_leave:
 								// declared
 								// name = my_function
 								// name() 
-								// that call will have "my_function" for value __FUNCTION__
+								// that call will have "name" for value __FUNCTION__
+								// even though the real function is my_function
 								// must define it at COMPILE time
 								// mapInsertEx(fnframe->cf_symtab, "__FUNCTION__", 
                 // newString(O_SVAL(opcode->operand)->value));
