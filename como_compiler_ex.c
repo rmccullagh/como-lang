@@ -558,6 +558,12 @@ load_name_leave:
 
                 break;
             }
+						case IS_EQUAL: {
+							Object *right = pop(frame);
+							Object *left = pop(frame);
+							push(frame, newLong((long)objectValueCompare(left, right)));
+							break;
+						}
             case ITIMES: {
                 Object *right = pop(frame);
                 Object *left = pop(frame);
